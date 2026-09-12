@@ -16,7 +16,11 @@ describe('Ergonomic Keyboard Layouts', () => {
   });
 
   it('ensures radialSingleThumbLayout contains all Spanish letters including Ñ and essential controls', () => {
-    const chars = new Set(radialSingleThumbLayout.keys.map(k => k.char.toLowerCase()));
+    const chars = new Set<string>();
+    radialSingleThumbLayout.keys.forEach(k => {
+      chars.add(k.char.toLowerCase());
+      if (k.alternateChar) chars.add(k.alternateChar.toLowerCase());
+    });
     spanishAlphabet.forEach(letter => {
       expect(chars.has(letter), `Missing letter ${letter} in radial layout`).toBe(true);
     });

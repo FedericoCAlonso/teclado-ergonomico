@@ -4,6 +4,8 @@
 
 export type Handedness = 'right' | 'left' | 'both';
 
+export type ShiftMode = 'none' | 'shift' | 'caps';
+
 export type KeyType = 'letter' | 'number' | 'punctuation' | 'action' | 'space';
 
 export interface KeyDefinition {
@@ -12,6 +14,8 @@ export interface KeyDefinition {
   display: string;
   secondaryChar?: string; // Carácter secundario (número o símbolo al hacer swipe-down)
   accentChar?: string;    // Carácter con tilde (al hacer flick hacia afuera o inferencia)
+  alternateChar?: string; // Carácter fonotáctico compartido (ej: W en K·W, X en Z·X, H en J·H)
+  path?: string;          // Forma SVG personalizada (ej: segmento de arco para barra espaciadora)
   type: KeyType;
   /** Coordenadas relativas normalizadas (0 a 1) o absolutas en píxeles */
   x: number;

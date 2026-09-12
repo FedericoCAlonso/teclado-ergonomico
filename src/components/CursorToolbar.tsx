@@ -1,12 +1,15 @@
 import React from 'react';
 import { ChevronLeft, ChevronRight, Sparkles } from 'lucide-react';
+import type { ShiftMode } from './VirtualKeyboardCanvas';
 
 interface CursorToolbarProps {
   cursorPos: number;
   totalLength: number;
   accentPending: boolean;
+  shiftState: ShiftMode;
   onMoveCursor: (delta: number) => void;
   onToggleAccent: () => void;
+  onToggleShift: () => void;
   onInsertChar: (char: string) => void;
 }
 
@@ -16,8 +19,10 @@ export const CursorToolbar: React.FC<CursorToolbarProps> = ({
   cursorPos,
   totalLength,
   accentPending,
+  shiftState,
   onMoveCursor,
   onToggleAccent,
+  onToggleShift,
   onInsertChar
 }) => {
   return (
@@ -50,23 +55,41 @@ export const CursorToolbar: React.FC<CursorToolbarProps> = ({
         </div>
       </div>
 
-      {/* Indicador y Botón Rápido de Tilde Muerta */}
-      <button
-        onClick={onToggleAccent}
-        className={`px-2.5 py-1 rounded-lg border font-bold text-xs flex items-center gap-1.5 transition-all active:scale-95 ${
-          accentPending
-            ? 'bg-amber-500 text-slate-950 border-amber-400 shadow-md shadow-amber-500/30 animate-pulse'
-            : 'bg-slate-800 text-slate-200 border-slate-700 hover:border-amber-400/60 hover:text-amber-300'
-        }`}
-      >
-        <Sparkles className="w-3 h-3" />
-        <span>Tilde [ ´ ]</span>
-        {accentPending && <span className="text-[9px] bg-slate-950/80 text-amber-300 px-1 rounded">Vocal...</span>}
-      </button>
+      <div className="flex items-center gap-1.5">
+        {/* Botón de Mayúsculas / Shift */}
+        <button
+          onClick={onToggleShift}
+          className={`px-2 py-1 rounded-lg border font-bold text-xs flex items-center gap-1 transition-all active:scale-95 ${
+            shiftState === 'caps'
+              ? 'bg-cyan-500 text-slate-950 border-cyan-400 font-extrabold shadow-sm'
+              : shiftState === 'shift'
+              ? 'bg-cyan-900/60 text-cyan-300 border-cyan-500/60'
+              : 'bg-slate-800 text-slate-400 border-slate-700 hover:text-slate-200'
+          }`}
+          title="Alternar Mayúsculas / Bloq Mayús"
+        >
+          <span>{shiftState === 'caps' ? '⇪ BLOQ' : shiftState === 'shift' ? '⇧ MAY' : '⇧'}</span>
+        </button>
+
+        {/* Indicador y Botón Rápido de Tilde Muerta */}
+        <button
+          onClick={onToggleAccent}
+          className={`px-2.5 py-1 rounded-lg border font-bold text-xs flex items-center gap-1.5 transition-all active:scale-95 ${
+            accentPending
+              ? 'bg-amber-500 text-slate-950 border-amber-400 shadow-md shadow-amber-500/30 animate-pulse'
+              : 'bg-slate-800 text-slate-200 border-slate-700 hover:border-amber-400/60 hover:text-amber-300'
+          }`}
+          title="Tilde: Pulsa ´ y luego la vocal"
+        >
+          <Sparkles className="w-3 h-3" />
+          <span>´</span>
+          {accentPending && <span className="text-[9px] bg-slate-950/80 text-amber-300 px-1 rounded">Vocal</span>}
+        </button>
+      </div>
 
       {/* Símbolos Rápidos del Español */}
       <div className="hidden sm:flex items-center gap-1">
-        {QUICK_SYMBOLS.slice(0, 4).map(sym => (
+        {QUICK_SYMBOLS.slice(0, 3).map(sym => (
           <button
             key={sym}
             onClick={() => onInsertChar(sym)}
