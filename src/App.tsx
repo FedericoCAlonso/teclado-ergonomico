@@ -4,6 +4,9 @@ import type { Point2D } from './biomechanics/polarModel';
 import {
   radialSingleThumbLayout,
   qwertyBaselineLayout,
+  createRadialSingleThumbLayout,
+  DEFAULT_RADIAL_TUNING,
+  type RadialLetterMapping,
 } from './layouts';
 import { TypingTracker } from './metrics/typingTracker';
 import { evaluateLayoutCost } from './optimizer/costFunction';
@@ -22,6 +25,7 @@ const ACCENTED_VOWELS: Record<string, string> = {
 
 export const App: React.FC = () => {
   const [currentLayout, setCurrentLayout] = useState<LayoutDefinition>(radialSingleThumbLayout);
+  const [letterMapping, setLetterMapping] = useState<RadialLetterMapping>('phonotactic');
   const [inputText, setInputText] = useState<string>('');
   const [cursorPos, setCursorPos] = useState<number>(0);
   const [accentPending, setAccentPending] = useState<boolean>(false);
@@ -33,7 +37,15 @@ export const App: React.FC = () => {
   const [copied, setCopied] = useState<boolean>(false);
   const [showGuide, setShowGuide] = useState<boolean>(false);
 
-  const activeLayout = currentLayout;
+  const activeLayout = useMemo(() => {
+    if (currentLayout.mode === 'single-thumb-right') {
+      return createRadialSingleThumbLayout(DEFAULT_RADIAL_TUNING, false, letterMapping);
+    }
+    if (currentLayout.mode === 'single-thumb-left') {
+      return createRadialSingleThumbLayout(DEFAULT_RADIAL_TUNING, true, letterMapping);
+    }
+    return currentLayout;
+  }, [currentLayout, letterMapping]);
 
   const [tracker] = useState(() => new TypingTracker());
   const [metrics, setMetrics] = useState(() => tracker.getMetrics());
@@ -369,6 +381,8 @@ export const App: React.FC = () => {
         <LayoutControls
           currentLayout={activeLayout}
           onSelectLayout={(l) => setCurrentLayout(l)}
+          letterMapping={letterMapping}
+          onSelectLetterMapping={setLetterMapping}
           showBiomechanicArcs={showBiomechanicArcs}
           onToggleBiomechanicArcs={setShowBiomechanicArcs}
           showOcclusionShadow={showOcclusionShadow}

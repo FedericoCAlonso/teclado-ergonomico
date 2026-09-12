@@ -100,4 +100,23 @@ describe('Ergonomic Keyboard Layouts', () => {
       expect(counts[i]).toBeGreaterThan(counts[i - 1]);
     }
   });
+
+  it('validates that all 3 radial letter mappings (phonotactic, qwerty-horizontal, qwerty-column) contain all 27 Spanish letters', async () => {
+    const { createRadialSingleThumbLayout, DEFAULT_RADIAL_TUNING } = await import('./radialSingleThumbLayout');
+    const mappings = ['phonotactic', 'qwerty-horizontal', 'qwerty-column'] as const;
+
+    mappings.forEach(m => {
+      const layout = createRadialSingleThumbLayout(DEFAULT_RADIAL_TUNING, false, m);
+      const chars = new Set<string>();
+      layout.keys.forEach(k => {
+        chars.add(k.char.toLowerCase());
+        if (k.secondaryChar) chars.add(k.secondaryChar.toLowerCase());
+      });
+
+      spanishAlphabet.forEach(letter => {
+        expect(chars.has(letter), `Mapping ${m} is missing letter: ${letter}`).toBe(true);
+      });
+      expect(chars.has('ñ')).toBe(true);
+    });
+  });
 });

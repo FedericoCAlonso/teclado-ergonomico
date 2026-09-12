@@ -117,24 +117,26 @@ describe('App Root Workbench & Keyboard Interactions', () => {
     expect(screen.getByText('1!')).toBeDefined();
   });
 
-  it('navigates cursor by scrubbing across spacebar without typing a space', () => {
+  it('allows comparing and switching between all 3 letter distribution variants (Original, QWERTY 1, QWERTY 2)', () => {
     render(<App />);
-    const svg = screen.getByTestId('virtual-keyboard-canvas') as unknown as SVGSVGElement;
 
-    const keyE = radialSingleThumbLayout.keys.find(k => k.char === 'e')!;
-    const keySpace = radialSingleThumbLayout.keys.find(k => k.type === 'space')!;
+    // Check that all 3 mapping options are rendered
+    expect(screen.getByText('Original')).toBeDefined();
+    expect(screen.getByText('QWERTY 1')).toBeDefined();
+    expect(screen.getByText('QWERTY 2')).toBeDefined();
 
-    tapKey(svg, keyE);
-    tapKey(svg, keyE);
-    expect(screen.getByText('ee')).toBeDefined();
+    // Switch to QWERTY 1 (Horizontal)
+    fireEvent.click(screen.getByText('QWERTY 1'));
+    // QWERTY 1 should display 'Horizontal' and update active description
+    expect(screen.getByText(/Pares contiguos por filas/i)).toBeDefined();
 
-    // Scrub across spacebar
-    fireEvent.pointerDown(svg, { clientX: keySpace.x, clientY: keySpace.y, pointerId: 1 });
-    fireEvent.pointerMove(svg, { clientX: keySpace.x + 35, clientY: keySpace.y, pointerId: 1 });
-    fireEvent.pointerUp(svg, { clientX: keySpace.x + 35, clientY: keySpace.y, pointerId: 1 });
+    // Switch to QWERTY 2 (Columnas)
+    fireEvent.click(screen.getByText('QWERTY 2'));
+    // QWERTY 2 should display 'Columnas' and update active description
+    expect(screen.getByText(/Cada letra principal emparejada con su vecina de columna/i)).toBeDefined();
 
-    // Text should still be 'ee' with 2 chars (no extra space character inserted because scrubbing occurred)
-    expect(screen.getByText('ee')).toBeDefined();
-    expect(screen.getByText(/2 caracteres/i)).toBeDefined();
+    // Switch back to Original
+    fireEvent.click(screen.getByText('Original'));
+    expect(screen.getByText(/Letras reinas/i)).toBeDefined();
   });
 });

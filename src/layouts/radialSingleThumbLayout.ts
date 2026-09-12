@@ -1,17 +1,49 @@
 import type { LayoutDefinition, KeyDefinition } from '../types';
 
+export type RadialLetterMapping = 'phonotactic' | 'qwerty-horizontal' | 'qwerty-column';
+
+export interface RadialLetterMappingOption {
+  id: RadialLetterMapping;
+  name: string;
+  shortName: string;
+  description: string;
+}
+
+export const RADIAL_MAPPING_OPTIONS: RadialLetterMappingOption[] = [
+  {
+    id: 'phonotactic',
+    name: 'Original (Frecuencia Fonotáctica)',
+    shortName: 'Original',
+    description: 'Letras reinas (E, A, O, S, R, N) en arco dorado. Máxima tasa de toque simple (~94% Tap).'
+  },
+  {
+    id: 'qwerty-horizontal',
+    name: 'QWERTY 1 (Pares Horizontales)',
+    shortName: 'QWERTY 1',
+    description: 'Pares contiguos por filas: Q-W, E-R, T-Y / A-S, D-F, G-H... Búsqueda visual inmediata.'
+  },
+  {
+    id: 'qwerty-column',
+    name: 'QWERTY 2 (Columnas y Zonas)',
+    shortName: 'QWERTY 2',
+    description: 'Cada letra principal emparejada con su vecina de columna vertical (A-Z, S-X, D-C...).'
+  }
+];
+
 export interface RadialTuningParams {
   pivotX: number;    // Posición X del pivote (px, base: 332)
   pivotY: number;    // Posición Y del pivote (px, base: 325)
-  arcScale: number;  // Factor de escala de los arcos en % (base: 100)
-  keyScale: number;  // Factor de tamaño de teclas en % (base: 100)
+  arcScale: number;  // Factor de escala de los arcos en % (base: 80)
+  keyScale: number;  // Factor de tamaño de teclas en % (base: 75)
+  mapping?: RadialLetterMapping;
 }
 
 export const DEFAULT_RADIAL_TUNING: RadialTuningParams = {
   pivotX: 332,
   pivotY: 325,
   arcScale: 80,
-  keyScale: 75
+  keyScale: 75,
+  mapping: 'phonotactic'
 };
 
 /**
@@ -83,20 +115,96 @@ function createRibbonPath(
   }
 }
 
+const MAPPING_CONFIGS: Record<
+  RadialLetterMapping,
+  {
+    name: string;
+    upper: Array<{ id: string; char: string; display: string; sec: string }>;
+    golden: Array<{ id: string; char: string; display: string; sec: string }>;
+  }
+> = {
+  'phonotactic': {
+    name: 'Original (Frecuencia)',
+    upper: [
+      { id: 'k_iy', char: 'i', display: 'I', sec: 'y' },
+      { id: 'k_dv', char: 'd', display: 'D', sec: 'v' },
+      { id: 'k_lh', char: 'l', display: 'L', sec: 'h' },
+      { id: 'k_cq', char: 'c', display: 'C', sec: 'q' },
+      { id: 'k_tx', char: 't', display: 'T', sec: 'x' },
+      { id: 'k_uw', char: 'u', display: 'U', sec: 'w' },
+      { id: 'k_mg', char: 'm', display: 'M', sec: 'g' },
+      { id: 'k_pb', char: 'p', display: 'P', sec: 'b' },
+    ],
+    golden: [
+      { id: 'k_ej', char: 'e', display: 'E', sec: 'j' },
+      { id: 'k_ak', char: 'a', display: 'A', sec: 'k' },
+      { id: 'k_odot', char: 'o', display: 'O', sec: '.' },
+      { id: 'k_sz', char: 's', display: 'S', sec: 'z' },
+      { id: 'k_rf', char: 'r', display: 'R', sec: 'f' },
+      { id: 'k_nene', char: 'n', display: 'N', sec: 'ñ' },
+    ]
+  },
+  'qwerty-horizontal': {
+    name: 'QWERTY 1 (Horizontal)',
+    upper: [
+      { id: 'k_qw', char: 'q', display: 'Q', sec: 'w' },
+      { id: 'k_er', char: 'e', display: 'E', sec: 'r' },
+      { id: 'k_ty', char: 't', display: 'T', sec: 'y' },
+      { id: 'k_ui', char: 'i', display: 'I', sec: 'u' },
+      { id: 'k_op', char: 'o', display: 'O', sec: 'p' },
+      { id: 'k_zx', char: 'z', display: 'Z', sec: 'x' },
+      { id: 'k_cv', char: 'c', display: 'C', sec: 'v' },
+      { id: 'k_bn', char: 'n', display: 'N', sec: 'b' },
+    ],
+    golden: [
+      { id: 'k_as', char: 'a', display: 'A', sec: 's' },
+      { id: 'k_df', char: 'd', display: 'D', sec: 'f' },
+      { id: 'k_gh', char: 'g', display: 'G', sec: 'h' },
+      { id: 'k_jk', char: 'j', display: 'J', sec: 'k' },
+      { id: 'k_lnene', char: 'l', display: 'L', sec: 'ñ' },
+      { id: 'k_mdot', char: 'm', display: 'M', sec: '.' },
+    ]
+  },
+  'qwerty-column': {
+    name: 'QWERTY 2 (Columnas)',
+    upper: [
+      { id: 'k_qw', char: 'q', display: 'Q', sec: 'w' },
+      { id: 'k_edot', char: 'e', display: 'E', sec: '.' },
+      { id: 'k_yh', char: 'y', display: 'Y', sec: 'h' },
+      { id: 'k_uj', char: 'u', display: 'U', sec: 'j' },
+      { id: 'k_ik', char: 'i', display: 'I', sec: 'k' },
+      { id: 'k_op', char: 'o', display: 'O', sec: 'p' },
+      { id: 'k_nb', char: 'n', display: 'N', sec: 'b' },
+      { id: 'k_mv', char: 'm', display: 'M', sec: 'v' },
+    ],
+    golden: [
+      { id: 'k_az', char: 'a', display: 'A', sec: 'z' },
+      { id: 'k_sx', char: 's', display: 'S', sec: 'x' },
+      { id: 'k_dc', char: 'd', display: 'D', sec: 'c' },
+      { id: 'k_rf', char: 'r', display: 'R', sec: 'f' },
+      { id: 'k_tg', char: 't', display: 'T', sec: 'g' },
+      { id: 'k_lnene', char: 'l', display: 'L', sec: 'ñ' },
+    ]
+  }
+};
+
 /**
  * Genera el layout radial con botones dobles (Opción C: Tap vs Flick).
  * Cumple estrictamente la ley de escala polar con densidad creciente:
  * Controles (5) < Golden Arc (6) < Upper Arc (8) < Numbers Arc (10).
- * Total: 14 botones dobles con las 27 letras del español organizadas por frecuencia y fonotáctica.
+ * Total: 14 botones dobles con las 27 letras del español.
  */
 export function createRadialSingleThumbLayout(
   params: Partial<RadialTuningParams> = {},
-  isLeft: boolean = false
+  isLeft: boolean = false,
+  mapping: RadialLetterMapping = 'phonotactic'
 ): LayoutDefinition {
   const pivotX = params.pivotX ?? DEFAULT_RADIAL_TUNING.pivotX;
   const pivotY = params.pivotY ?? DEFAULT_RADIAL_TUNING.pivotY;
   const arcScale = (params.arcScale ?? DEFAULT_RADIAL_TUNING.arcScale) / 100;
   const keyScale = (params.keyScale ?? DEFAULT_RADIAL_TUNING.keyScale) / 100;
+  const activeMapping = params.mapping ?? mapping ?? 'phonotactic';
+  const config = MAPPING_CONFIGS[activeMapping] ?? MAPPING_CONFIGS.phonotactic;
 
   // Radios concéntricos calculados sobre la base angular ergonómica
   const rNumbers = Math.round(295 * arcScale);
@@ -131,17 +239,7 @@ export function createRadialSingleThumbLayout(
   });
 
   // 2. Arco Superior de Letras Dobles (r = rUpper px, 8 botones)
-  // Frecuentes (Tap) + Infrecuentes relacionadas (Flick)
-  const arc1KeysData: Array<{ id: string; char: string; display: string; sec: string }> = [
-    { id: 'k_iy', char: 'i', display: 'I', sec: 'y' },
-    { id: 'k_dv', char: 'd', display: 'D', sec: 'v' },
-    { id: 'k_lh', char: 'l', display: 'L', sec: 'h' },
-    { id: 'k_cq', char: 'c', display: 'C', sec: 'q' },
-    { id: 'k_tx', char: 't', display: 'T', sec: 'x' },
-    { id: 'k_uw', char: 'u', display: 'U', sec: 'w' },
-    { id: 'k_mg', char: 'm', display: 'M', sec: 'g' },
-    { id: 'k_pb', char: 'p', display: 'P', sec: 'b' },
-  ];
+  const arc1KeysData = config.upper;
   const arc1Upper: KeyDefinition[] = arc1KeysData.map((k, i) => {
     const deg = -170 + i * ((170 - 90) / (arc1KeysData.length - 1));
     return createPolarKey(k.id, k.char, k.display, rUpper, deg, {
@@ -153,15 +251,7 @@ export function createRadialSingleThumbLayout(
   });
 
   // 3. Arco Dorado Interior de Letras Dobles (r = rGolden px, 6 botones)
-  // Las 6 letras reinas del español (Tap) + Infrecuentes / puntuación (Flick)
-  const arc2KeysData: Array<{ id: string; char: string; display: string; sec: string }> = [
-    { id: 'k_ej', char: 'e', display: 'E', sec: 'j' },
-    { id: 'k_ak', char: 'a', display: 'A', sec: 'k' },
-    { id: 'k_odot', char: 'o', display: 'O', sec: '.' },
-    { id: 'k_sz', char: 's', display: 'S', sec: 'z' },
-    { id: 'k_rf', char: 'r', display: 'R', sec: 'f' },
-    { id: 'k_nene', char: 'n', display: 'N', sec: 'ñ' },
-  ];
+  const arc2KeysData = config.golden;
   const arc2Golden: KeyDefinition[] = arc2KeysData.map((k, i) => {
     const deg = -168 + i * ((168 - 92) / (arc2KeysData.length - 1));
     return createPolarKey(k.id, k.char, k.display, rGolden, deg, {
@@ -221,11 +311,13 @@ export function createRadialSingleThumbLayout(
     spaceKeyRight
   ];
 
+  const mappingLabel = config.name;
+
   if (!isLeft) {
     return {
       id: 'radial-single-thumb-right',
-      name: 'Polar Ergonómico Monomanual (Diestro - 14 Botones Dobles)',
-      description: '14 botones dobles (Tap vs Flick) con las 27 letras del español. Densidad creciente: Controles (5) < Golden (6) < Upper (8) < Números (10).',
+      name: `Polar Ergonómico Monomanual (Diestro - ${mappingLabel})`,
+      description: `14 botones dobles (Tap vs Flick - ${mappingLabel}) con las 27 letras del español. Densidad creciente: Controles (5) < Golden (6) < Upper (8) < Números (10).`,
       mode: 'single-thumb-right',
       width: 360,
       height: 330,
@@ -264,8 +356,8 @@ export function createRadialSingleThumbLayout(
 
   return {
     id: 'radial-single-thumb-left',
-    name: 'Polar Ergonómico Monomanual (Zurdo - 14 Botones Dobles)',
-    description: 'Layout radial simétrico para pulgar izquierdo con 14 botones dobles (5 < 6 < 8 < 10).',
+    name: `Polar Ergonómico Monomanual (Zurdo - ${mappingLabel})`,
+    description: `Layout radial simétrico para pulgar izquierdo (${mappingLabel}) con 14 botones dobles (5 < 6 < 8 < 10).`,
     mode: 'single-thumb-left',
     width: 360,
     height: 330,
@@ -277,5 +369,5 @@ export function createRadialSingleThumbLayout(
   };
 }
 
-export const radialSingleThumbLayout: LayoutDefinition = createRadialSingleThumbLayout(DEFAULT_RADIAL_TUNING, false);
-export const radialSingleThumbLeftLayout: LayoutDefinition = createRadialSingleThumbLayout(DEFAULT_RADIAL_TUNING, true);
+export const radialSingleThumbLayout: LayoutDefinition = createRadialSingleThumbLayout(DEFAULT_RADIAL_TUNING, false, 'phonotactic');
+export const radialSingleThumbLeftLayout: LayoutDefinition = createRadialSingleThumbLayout(DEFAULT_RADIAL_TUNING, true, 'phonotactic');

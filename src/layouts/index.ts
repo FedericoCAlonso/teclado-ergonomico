@@ -4,7 +4,10 @@ import {
   radialSingleThumbLeftLayout,
   createRadialSingleThumbLayout,
   DEFAULT_RADIAL_TUNING,
-  type RadialTuningParams
+  type RadialTuningParams,
+  type RadialLetterMapping,
+  type RadialLetterMappingOption,
+  RADIAL_MAPPING_OPTIONS
 } from './radialSingleThumbLayout';
 import { bimanualSplitLayout } from './bimanualSplitLayout';
 import { hybridLayout } from './hybridLayout';
@@ -16,6 +19,9 @@ export {
   createRadialSingleThumbLayout,
   DEFAULT_RADIAL_TUNING,
   type RadialTuningParams,
+  type RadialLetterMapping,
+  type RadialLetterMappingOption,
+  RADIAL_MAPPING_OPTIONS,
   bimanualSplitLayout,
   hybridLayout,
   qwertyBaselineLayout

@@ -1,10 +1,12 @@
 import React from 'react';
-import { AVAILABLE_LAYOUTS } from '../layouts';
+import { AVAILABLE_LAYOUTS, RADIAL_MAPPING_OPTIONS, type RadialLetterMapping } from '../layouts';
 import type { LayoutDefinition } from '../types';
 
 interface LayoutControlsProps {
   currentLayout: LayoutDefinition;
   onSelectLayout: (layout: LayoutDefinition) => void;
+  letterMapping: RadialLetterMapping;
+  onSelectLetterMapping: (mapping: RadialLetterMapping) => void;
   showBiomechanicArcs: boolean;
   onToggleBiomechanicArcs: (val: boolean) => void;
   showOcclusionShadow: boolean;
@@ -23,6 +25,8 @@ const PRESET_TEXTS = [
 export const LayoutControls: React.FC<LayoutControlsProps> = ({
   currentLayout,
   onSelectLayout,
+  letterMapping,
+  onSelectLetterMapping,
   showBiomechanicArcs,
   onToggleBiomechanicArcs,
   showOcclusionShadow,
@@ -33,10 +37,56 @@ export const LayoutControls: React.FC<LayoutControlsProps> = ({
 }) => {
   return (
     <div className="w-full max-w-md mx-auto bg-slate-900/90 border border-slate-800 rounded-2xl p-3 shadow-lg space-y-2.5 text-xs text-slate-300">
-      {/* Selector de Layout */}
+      {/* Selector de Comparativa: Mapeo de Letras (Opción Original vs QWERTY Friendly) */}
       <div>
-        <label className="block text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1">
-          Distribución de Teclado (Layout Fijo):
+        <div className="flex items-center justify-between mb-1.5">
+          <label className="text-[11px] font-bold text-slate-300 uppercase tracking-wider">
+            Comparativa de Distribución (14 Botones):
+          </label>
+          <span className="text-[9px] text-cyan-400 font-semibold px-1.5 py-0.5 rounded bg-cyan-950/60 border border-cyan-800/60">
+            3 Modos
+          </span>
+        </div>
+
+        <div className="grid grid-cols-3 gap-1.5">
+          {RADIAL_MAPPING_OPTIONS.map((opt) => {
+            const isSelected = letterMapping === opt.id;
+            let activeClasses = 'bg-slate-950 text-slate-400 border-slate-800 hover:bg-slate-800/80';
+            if (isSelected) {
+              if (opt.id === 'phonotactic') {
+                activeClasses = 'bg-cyan-500/20 text-cyan-300 border-cyan-500/60 shadow-sm shadow-cyan-500/20 font-bold';
+              } else if (opt.id === 'qwerty-horizontal') {
+                activeClasses = 'bg-emerald-500/20 text-emerald-300 border-emerald-500/60 shadow-sm shadow-emerald-500/20 font-bold';
+              } else {
+                activeClasses = 'bg-violet-500/20 text-violet-300 border-violet-500/60 shadow-sm shadow-violet-500/20 font-bold';
+              }
+            }
+
+            return (
+              <button
+                key={opt.id}
+                onClick={() => onSelectLetterMapping(opt.id)}
+                className={`px-2 py-2 rounded-xl border text-center transition-all active:scale-95 ${activeClasses}`}
+                title={opt.description}
+              >
+                <div className="text-[11px] leading-tight font-bold">{opt.shortName}</div>
+                <div className="text-[9px] opacity-75 mt-0.5">
+                  {opt.id === 'phonotactic' ? 'Frecuencia' : opt.id === 'qwerty-horizontal' ? 'Horizontal' : 'Columnas'}
+                </div>
+              </button>
+            );
+          })}
+        </div>
+
+        <p className="text-[10px] text-slate-400 mt-1.5 leading-relaxed bg-slate-950/60 p-2 rounded-lg border border-slate-800/60">
+          {RADIAL_MAPPING_OPTIONS.find(o => o.id === letterMapping)?.description}
+        </p>
+      </div>
+
+      {/* Selector de Layout General (Diestro / Zurdo / Comparativas) */}
+      <div className="pt-2 border-t border-slate-800/80">
+        <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1">
+          Distribución de Teclado:
         </label>
         <select
           value={currentLayout.id}
@@ -52,9 +102,6 @@ export const LayoutControls: React.FC<LayoutControlsProps> = ({
             </option>
           ))}
         </select>
-        <p className="text-[10px] text-slate-500 mt-1 leading-relaxed">
-          {currentLayout.description}
-        </p>
       </div>
 
       {/* Controles y Visualizadores Biomecánicos */}
