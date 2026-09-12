@@ -22,3 +22,6 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Local workflows (requires OAuth workflow scope)
+.github/
