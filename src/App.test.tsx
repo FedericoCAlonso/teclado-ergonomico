@@ -129,14 +129,22 @@ describe('App Root Workbench & Keyboard Interactions', () => {
     fireEvent.click(screen.getByText('QWERTY 1'));
     // QWERTY 1 should display 'Horizontal' and update active description
     expect(screen.getByText(/Pares contiguos por filas/i)).toBeDefined();
+    // Canvas should now show Q and W
+    expect(screen.getByText('Q')).toBeDefined();
+    expect(screen.getByText('W')).toBeDefined();
 
     // Switch to QWERTY 2 (Columnas)
     fireEvent.click(screen.getByText('QWERTY 2'));
     // QWERTY 2 should display 'Columnas' and update active description
     expect(screen.getByText(/Cada letra principal emparejada con su vecina de columna/i)).toBeDefined();
+    // In QWERTY 2, A is paired with Z
+    expect(screen.getByText('Z')).toBeDefined();
 
     // Switch back to Original
     fireEvent.click(screen.getByText('Original'));
     expect(screen.getByText(/Letras reinas/i)).toBeDefined();
+    // In Original, I is paired with Y
+    expect(screen.getByText('I')).toBeDefined();
+    expect(screen.getByText('Y')).toBeDefined();
   });
 });

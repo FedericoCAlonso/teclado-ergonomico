@@ -42,8 +42,7 @@ export const DEFAULT_RADIAL_TUNING: RadialTuningParams = {
   pivotX: 332,
   pivotY: 325,
   arcScale: 80,
-  keyScale: 75,
-  mapping: 'phonotactic'
+  keyScale: 75
 };
 
 /**
@@ -197,13 +196,13 @@ const MAPPING_CONFIGS: Record<
 export function createRadialSingleThumbLayout(
   params: Partial<RadialTuningParams> = {},
   isLeft: boolean = false,
-  mapping: RadialLetterMapping = 'phonotactic'
+  mapping?: RadialLetterMapping
 ): LayoutDefinition {
   const pivotX = params.pivotX ?? DEFAULT_RADIAL_TUNING.pivotX;
   const pivotY = params.pivotY ?? DEFAULT_RADIAL_TUNING.pivotY;
   const arcScale = (params.arcScale ?? DEFAULT_RADIAL_TUNING.arcScale) / 100;
   const keyScale = (params.keyScale ?? DEFAULT_RADIAL_TUNING.keyScale) / 100;
-  const activeMapping = params.mapping ?? mapping ?? 'phonotactic';
+  const activeMapping = mapping ?? params.mapping ?? 'phonotactic';
   const config = MAPPING_CONFIGS[activeMapping] ?? MAPPING_CONFIGS.phonotactic;
 
   // Radios concéntricos calculados sobre la base angular ergonómica

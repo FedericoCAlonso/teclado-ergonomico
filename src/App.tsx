@@ -214,6 +214,13 @@ export const App: React.FC = () => {
     handleClearText();
   };
 
+  const handleSelectLetterMapping = (mapping: RadialLetterMapping) => {
+    setLetterMapping(mapping);
+    if (currentLayout.mode !== 'single-thumb-right' && currentLayout.mode !== 'single-thumb-left') {
+      setCurrentLayout(radialSingleThumbLayout);
+    }
+  };
+
   const textBeforeCursor = inputText.slice(0, cursorPos);
   const textAfterCursor = inputText.slice(cursorPos);
 
@@ -356,6 +363,7 @@ export const App: React.FC = () => {
       {/* Lienzo del Teclado Táctil Interactivo */}
       <main className="w-full my-2">
         <VirtualKeyboardCanvas
+          key={`${activeLayout.id}-${letterMapping}`}
           layout={activeLayout}
           accentPending={accentPending}
           shiftState={shiftState}
@@ -382,7 +390,7 @@ export const App: React.FC = () => {
           currentLayout={activeLayout}
           onSelectLayout={(l) => setCurrentLayout(l)}
           letterMapping={letterMapping}
-          onSelectLetterMapping={setLetterMapping}
+          onSelectLetterMapping={handleSelectLetterMapping}
           showBiomechanicArcs={showBiomechanicArcs}
           onToggleBiomechanicArcs={setShowBiomechanicArcs}
           showOcclusionShadow={showOcclusionShadow}

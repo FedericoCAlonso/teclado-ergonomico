@@ -118,5 +118,21 @@ describe('Ergonomic Keyboard Layouts', () => {
       });
       expect(chars.has('ñ')).toBe(true);
     });
+
+    // Verify distinct key compositions across mappings
+    const phono = createRadialSingleThumbLayout(DEFAULT_RADIAL_TUNING, false, 'phonotactic');
+    const qwertyH = createRadialSingleThumbLayout(DEFAULT_RADIAL_TUNING, false, 'qwerty-horizontal');
+    const qwertyC = createRadialSingleThumbLayout(DEFAULT_RADIAL_TUNING, false, 'qwerty-column');
+
+    expect(phono.keys.some(k => k.id === 'k_iy')).toBe(true);
+    expect(phono.keys.some(k => k.id === 'k_qw')).toBe(false);
+
+    expect(qwertyH.keys.some(k => k.id === 'k_qw')).toBe(true);
+    expect(qwertyH.keys.some(k => k.id === 'k_as')).toBe(true);
+    expect(qwertyH.keys.some(k => k.id === 'k_iy')).toBe(false);
+
+    expect(qwertyC.keys.some(k => k.id === 'k_az')).toBe(true);
+    expect(qwertyC.keys.some(k => k.id === 'k_sx')).toBe(true);
+    expect(qwertyC.keys.some(k => k.id === 'k_as')).toBe(false);
   });
 });
