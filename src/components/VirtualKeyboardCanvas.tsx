@@ -57,7 +57,9 @@ export const VirtualKeyboardCanvas: React.FC<VirtualKeyboardCanvasProps> = ({
     // Detección táctil en el segmento de arco de la barra espaciadora
     const spaceKey = layout.keys.find(k => k.type === 'space');
     if (spaceKey) {
-      if (distToPivot >= 55 && distToPivot <= 110) {
+      const minSpaceR = (layout.arcRadii?.[4] ?? 118) * 0.45;
+      const maxSpaceR = (layout.arcRadii?.[4] ?? 118) * 0.92;
+      if (distToPivot >= minSpaceR && distToPivot <= maxSpaceR) {
         return spaceKey;
       }
     }
@@ -198,19 +200,21 @@ export const VirtualKeyboardCanvas: React.FC<VirtualKeyboardCanvasProps> = ({
           <g className="pointer-events-none opacity-25">
             {layout.pivotPoints.right && (
               <>
-                <circle cx={layout.pivotPoints.right.x} cy={layout.pivotPoints.right.y} r="295" fill="none" stroke="#64748b" strokeDasharray="3 3" strokeWidth="1" />
-                <circle cx={layout.pivotPoints.right.x} cy={layout.pivotPoints.right.y} r="250" fill="none" stroke="#06b6d4" strokeDasharray="3 3" strokeWidth="1" />
-                <circle cx={layout.pivotPoints.right.x} cy={layout.pivotPoints.right.y} r="205" fill="none" stroke="#10b981" strokeWidth="1.5" />
-                <circle cx={layout.pivotPoints.right.x} cy={layout.pivotPoints.right.y} r="160" fill="none" stroke="#06b6d4" strokeDasharray="3 3" strokeWidth="1" />
+                <circle cx={layout.pivotPoints.right.x} cy={layout.pivotPoints.right.y} r={layout.arcRadii?.[0] ?? 295} fill="none" stroke="#64748b" strokeDasharray="3 3" strokeWidth="1" />
+                <circle cx={layout.pivotPoints.right.x} cy={layout.pivotPoints.right.y} r={layout.arcRadii?.[1] ?? 250} fill="none" stroke="#06b6d4" strokeDasharray="3 3" strokeWidth="1" />
+                <circle cx={layout.pivotPoints.right.x} cy={layout.pivotPoints.right.y} r={layout.arcRadii?.[2] ?? 205} fill="none" stroke="#10b981" strokeWidth="1.5" />
+                <circle cx={layout.pivotPoints.right.x} cy={layout.pivotPoints.right.y} r={layout.arcRadii?.[3] ?? 160} fill="none" stroke="#06b6d4" strokeDasharray="3 3" strokeWidth="1" />
+                <circle cx={layout.pivotPoints.right.x} cy={layout.pivotPoints.right.y} r={layout.arcRadii?.[4] ?? 118} fill="none" stroke="#64748b" strokeDasharray="2 2" strokeWidth="0.8" />
                 <circle cx={layout.pivotPoints.right.x} cy={layout.pivotPoints.right.y} r="6" fill="#10b981" />
               </>
             )}
             {layout.pivotPoints.left && (
               <>
-                <circle cx={layout.pivotPoints.left.x} cy={layout.pivotPoints.left.y} r="295" fill="none" stroke="#64748b" strokeDasharray="3 3" strokeWidth="1" />
-                <circle cx={layout.pivotPoints.left.x} cy={layout.pivotPoints.left.y} r="250" fill="none" stroke="#06b6d4" strokeDasharray="3 3" strokeWidth="1" />
-                <circle cx={layout.pivotPoints.left.x} cy={layout.pivotPoints.left.y} r="205" fill="none" stroke="#10b981" strokeWidth="1.5" />
-                <circle cx={layout.pivotPoints.left.x} cy={layout.pivotPoints.left.y} r="160" fill="none" stroke="#06b6d4" strokeDasharray="3 3" strokeWidth="1" />
+                <circle cx={layout.pivotPoints.left.x} cy={layout.pivotPoints.left.y} r={layout.arcRadii?.[0] ?? 295} fill="none" stroke="#64748b" strokeDasharray="3 3" strokeWidth="1" />
+                <circle cx={layout.pivotPoints.left.x} cy={layout.pivotPoints.left.y} r={layout.arcRadii?.[1] ?? 250} fill="none" stroke="#06b6d4" strokeDasharray="3 3" strokeWidth="1" />
+                <circle cx={layout.pivotPoints.left.x} cy={layout.pivotPoints.left.y} r={layout.arcRadii?.[2] ?? 205} fill="none" stroke="#10b981" strokeWidth="1.5" />
+                <circle cx={layout.pivotPoints.left.x} cy={layout.pivotPoints.left.y} r={layout.arcRadii?.[3] ?? 160} fill="none" stroke="#06b6d4" strokeDasharray="3 3" strokeWidth="1" />
+                <circle cx={layout.pivotPoints.left.x} cy={layout.pivotPoints.left.y} r={layout.arcRadii?.[4] ?? 118} fill="none" stroke="#64748b" strokeDasharray="2 2" strokeWidth="0.8" />
                 <circle cx={layout.pivotPoints.left.x} cy={layout.pivotPoints.left.y} r="6" fill="#10b981" />
               </>
             )}

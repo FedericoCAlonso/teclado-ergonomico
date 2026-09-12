@@ -1,5 +1,11 @@
 import type { LayoutDefinition } from '../types';
-import { radialSingleThumbLayout, radialSingleThumbLeftLayout } from './radialSingleThumbLayout';
+import {
+  radialSingleThumbLayout,
+  radialSingleThumbLeftLayout,
+  createRadialSingleThumbLayout,
+  DEFAULT_RADIAL_TUNING,
+  type RadialTuningParams
+} from './radialSingleThumbLayout';
 import { bimanualSplitLayout } from './bimanualSplitLayout';
 import { hybridLayout } from './hybridLayout';
 import { qwertyBaselineLayout } from './qwertyBaselineLayout';
@@ -7,6 +13,9 @@ import { qwertyBaselineLayout } from './qwertyBaselineLayout';
 export {
   radialSingleThumbLayout,
   radialSingleThumbLeftLayout,
+  createRadialSingleThumbLayout,
+  DEFAULT_RADIAL_TUNING,
+  type RadialTuningParams,
   bimanualSplitLayout,
   hybridLayout,
   qwertyBaselineLayout

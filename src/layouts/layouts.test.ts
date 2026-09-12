@@ -70,4 +70,33 @@ describe('Ergonomic Keyboard Layouts', () => {
     expect(qwertyBaselineLayout.mode).toBe('qwerty-baseline');
     expect(qwertyBaselineLayout.keys.length).toBeGreaterThanOrEqual(30);
   });
+
+  it('strictly increases button count as curvature radius increases (5 < 7 < 9 < 10 < 11)', () => {
+    const pivot = radialSingleThumbLayout.pivotPoints.right!;
+    const keysWithoutSpace = radialSingleThumbLayout.keys.filter(k => k.type !== 'space');
+
+    // Group keys by their radius from the pivot
+    const radiusBuckets = new Map<number, number>();
+    keysWithoutSpace.forEach(k => {
+      const r = Math.round(Math.hypot(k.x - pivot.x, k.y - pivot.y));
+      // Cluster within 8px
+      let matchedBucket = [...radiusBuckets.keys()].find(b => Math.abs(b - r) <= 8);
+      if (matchedBucket === undefined) {
+        matchedBucket = r;
+      }
+      radiusBuckets.set(matchedBucket, (radiusBuckets.get(matchedBucket) ?? 0) + 1);
+    });
+
+    // Sort buckets by increasing radius
+    const sortedRadii = [...radiusBuckets.keys()].sort((a, b) => a - b);
+    expect(sortedRadii.length).toBe(5); // 5 concentric rows
+
+    const counts = sortedRadii.map(r => radiusBuckets.get(r)!);
+    expect(counts).toEqual([5, 7, 9, 10, 11]);
+
+    // Check strictly increasing: each arc has more buttons than all smaller arcs
+    for (let i = 1; i < counts.length; i++) {
+      expect(counts[i]).toBeGreaterThan(counts[i - 1]);
+    }
+  });
 });

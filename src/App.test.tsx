@@ -118,4 +118,26 @@ describe('App Root Workbench & Keyboard Interactions', () => {
 
     expect(screen.getByText(/1 caracteres/i)).toBeDefined();
   });
+
+  it('renders 4 tuning sliders, displays values, and allows real-time adjustment', () => {
+    render(<App />);
+
+    expect(screen.getByText(/Ajuste Biomecánico en Vivo/i)).toBeDefined();
+    expect(screen.getByText(/1. Posición X \(Pivote\):/i)).toBeDefined();
+    expect(screen.getByText(/2. Posición Y \(Pivote\):/i)).toBeDefined();
+    expect(screen.getByText(/3. Escala de Arcos:/i)).toBeDefined();
+    expect(screen.getByText(/4. Tamaño de Teclas:/i)).toBeDefined();
+
+    // Initial values displayed
+    expect(screen.getByText(/332 px/i)).toBeDefined();
+    expect(screen.getByText(/325 px/i)).toBeDefined();
+    expect(screen.getByText(/Copiar Valores/i)).toBeDefined();
+
+    // Adjusting a slider updates the readout
+    const sliders = screen.getAllByRole('slider');
+    expect(sliders.length).toBe(4);
+
+    fireEvent.change(sliders[0], { target: { value: '345' } });
+    expect(screen.getByText(/345 px/i)).toBeDefined();
+  });
 });

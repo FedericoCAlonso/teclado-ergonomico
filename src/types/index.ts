@@ -36,6 +36,7 @@ export interface LayoutDefinition {
     right?: { x: number; y: number };
     left?: { x: number; y: number };
   };
+  arcRadii?: number[];
 }
 
 export interface TouchEventSample {

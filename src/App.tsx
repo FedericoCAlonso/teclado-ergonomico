@@ -1,11 +1,18 @@
 import React, { useState, useMemo, useRef } from 'react';
 import type { LayoutDefinition, KeyDefinition, ShiftMode } from './types';
 import type { Point2D } from './biomechanics/polarModel';
-import { radialSingleThumbLayout, qwertyBaselineLayout } from './layouts';
+import {
+  radialSingleThumbLayout,
+  qwertyBaselineLayout,
+  createRadialSingleThumbLayout,
+  DEFAULT_RADIAL_TUNING,
+  type RadialTuningParams
+} from './layouts';
 import { TypingTracker } from './metrics/typingTracker';
 import { evaluateLayoutCost } from './optimizer/costFunction';
 import { VirtualKeyboardCanvas } from './components/VirtualKeyboardCanvas';
 import { CursorToolbar } from './components/CursorToolbar';
+import { BiomechanicTuningPanel } from './components/BiomechanicTuningPanel';
 import { MetricsPanel } from './components/MetricsPanel';
 import { LayoutControls } from './components/LayoutControls';
 import { Trash2, Copy, Check, Info, ShieldCheck, Activity } from 'lucide-react';
@@ -48,6 +55,7 @@ function resolveSharedInitialChar(keyDef: KeyDefinition, beforeText: string): st
 
 export const App: React.FC = () => {
   const [currentLayout, setCurrentLayout] = useState<LayoutDefinition>(radialSingleThumbLayout);
+  const [tuningParams, setTuningParams] = useState<RadialTuningParams>(DEFAULT_RADIAL_TUNING);
   const [inputText, setInputText] = useState<string>('');
   const [cursorPos, setCursorPos] = useState<number>(0);
   const [accentPending, setAccentPending] = useState<boolean>(false);
@@ -58,6 +66,17 @@ export const App: React.FC = () => {
   const [autoAccentEnabled, setAutoAccentEnabled] = useState<boolean>(false);
   const [copied, setCopied] = useState<boolean>(false);
   const [showGuide, setShowGuide] = useState<boolean>(false);
+
+  // Layout activo recalculado dinámicamente según los 4 deslizadores de ajuste
+  const activeLayout = useMemo(() => {
+    if (currentLayout.mode === 'single-thumb-right') {
+      return createRadialSingleThumbLayout(tuningParams, false);
+    }
+    if (currentLayout.mode === 'single-thumb-left') {
+      return createRadialSingleThumbLayout(tuningParams, true);
+    }
+    return currentLayout;
+  }, [currentLayout, tuningParams]);
 
   // Registro de última pulsación en teclas compartidas para detectar doble pulsación (toggle alternativo)
   const lastSharedTapRef = useRef<{
@@ -76,8 +95,8 @@ export const App: React.FC = () => {
   }, [inputText]);
 
   const currentLayoutCost = useMemo(() => {
-    return evaluateLayoutCost(currentLayout, sampleEvaluationText);
-  }, [currentLayout, sampleEvaluationText]);
+    return evaluateLayoutCost(activeLayout, sampleEvaluationText);
+  }, [activeLayout, sampleEvaluationText]);
 
   const qwertyCost = useMemo(() => {
     return evaluateLayoutCost(qwertyBaselineLayout, sampleEvaluationText);
@@ -429,10 +448,17 @@ export const App: React.FC = () => {
         onInsertChar={(char) => handleKeyPress(char, { id: 'k_quick', char, display: char, type: 'punctuation', x: 0, y: 0, radius: 0 }, { x: 180, y: 160 })}
       />
 
+      {/* Panel de Calibración con 4 Deslizadores de Posición y Tamaño */}
+      <BiomechanicTuningPanel
+        params={tuningParams}
+        onChange={setTuningParams}
+        onReset={() => setTuningParams(DEFAULT_RADIAL_TUNING)}
+      />
+
       {/* Lienzo del Teclado Táctil Interactivo */}
       <main className="w-full my-2">
         <VirtualKeyboardCanvas
-          layout={currentLayout}
+          layout={activeLayout}
           accentPending={accentPending}
           shiftState={shiftState}
           showOcclusionShadow={showOcclusionShadow}
@@ -455,7 +481,7 @@ export const App: React.FC = () => {
       {/* Controles de Layout, Visualizadores y Textos de Muestra */}
       <section className="w-full mb-6">
         <LayoutControls
-          currentLayout={currentLayout}
+          currentLayout={activeLayout}
           onSelectLayout={(l) => setCurrentLayout(l)}
           showBiomechanicArcs={showBiomechanicArcs}
           onToggleBiomechanicArcs={setShowBiomechanicArcs}
