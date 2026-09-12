@@ -19,6 +19,7 @@ describe('Ergonomic Keyboard Layouts', () => {
     const chars = new Set<string>();
     radialSingleThumbLayout.keys.forEach(k => {
       chars.add(k.char.toLowerCase());
+      if (k.secondaryChar) chars.add(k.secondaryChar.toLowerCase());
       if (k.alternateChar) chars.add(k.alternateChar.toLowerCase());
     });
     spanishAlphabet.forEach(letter => {
@@ -71,7 +72,7 @@ describe('Ergonomic Keyboard Layouts', () => {
     expect(qwertyBaselineLayout.keys.length).toBeGreaterThanOrEqual(30);
   });
 
-  it('strictly increases button count as curvature radius increases (5 < 7 < 9 < 10 < 11)', () => {
+  it('strictly increases button count as curvature radius increases (5 < 6 < 8 < 10)', () => {
     const pivot = radialSingleThumbLayout.pivotPoints.right!;
     const keysWithoutSpace = radialSingleThumbLayout.keys.filter(k => k.type !== 'space');
 
@@ -89,10 +90,10 @@ describe('Ergonomic Keyboard Layouts', () => {
 
     // Sort buckets by increasing radius
     const sortedRadii = [...radiusBuckets.keys()].sort((a, b) => a - b);
-    expect(sortedRadii.length).toBe(5); // 5 concentric rows
+    expect(sortedRadii.length).toBe(4); // 4 concentric rows (Controls, Golden, Upper, Numbers)
 
     const counts = sortedRadii.map(r => radiusBuckets.get(r)!);
-    expect(counts).toEqual([5, 7, 9, 10, 11]);
+    expect(counts).toEqual([5, 6, 8, 10]);
 
     // Check strictly increasing: each arc has more buttons than all smaller arcs
     for (let i = 1; i < counts.length; i++) {

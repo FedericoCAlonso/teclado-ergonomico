@@ -36,6 +36,8 @@ export const VirtualKeyboardCanvas: React.FC<VirtualKeyboardCanvasProps> = ({
   const lastScrubXRef = useRef<number>(0);
   const hasScrubbedRef = useRef<boolean>(false);
   const touchStartKeyRef = useRef<KeyDefinition | null>(null);
+  const isFlickActiveRef = useRef<boolean>(false);
+  const [isFlicking, setIsFlicking] = useState<boolean>(false);
 
   const getSvgCoordinates = useCallback((e: React.PointerEvent<SVGSVGElement>): Point2D | null => {
     if (!svgRef.current) return null;
@@ -57,8 +59,8 @@ export const VirtualKeyboardCanvas: React.FC<VirtualKeyboardCanvasProps> = ({
     // Detección táctil en el segmento de arco de la barra espaciadora
     const spaceKey = layout.keys.find(k => k.type === 'space');
     if (spaceKey) {
-      const minSpaceR = (layout.arcRadii?.[4] ?? 118) * 0.45;
-      const maxSpaceR = (layout.arcRadii?.[4] ?? 118) * 0.92;
+      const minSpaceR = (layout.arcRadii?.[3] ?? 98) * 0.40;
+      const maxSpaceR = (layout.arcRadii?.[3] ?? 98) * 0.85;
       if (distToPivot >= minSpaceR && distToPivot <= maxSpaceR) {
         return spaceKey;
       }
@@ -76,7 +78,7 @@ export const VirtualKeyboardCanvas: React.FC<VirtualKeyboardCanvasProps> = ({
       }
     }
 
-    return minDist < 36 ? closestKey : null;
+    return minDist < 34 ? closestKey : null;
   };
 
   const handlePointerDown = (e: React.PointerEvent<SVGSVGElement>) => {
@@ -90,6 +92,8 @@ export const VirtualKeyboardCanvas: React.FC<VirtualKeyboardCanvasProps> = ({
     const key = findClosestKey(pt);
     touchStartKeyRef.current = key;
     setActiveKeyId(key ? key.id : null);
+    isFlickActiveRef.current = false;
+    setIsFlicking(false);
 
     isGestureActiveRef.current = true;
     touchStartPosRef.current = pt;
@@ -103,25 +107,47 @@ export const VirtualKeyboardCanvas: React.FC<VirtualKeyboardCanvasProps> = ({
 
     setActiveTouch(pt);
 
-    // Navegación de cursor por desplazamiento gestual horizontal
-    const totalDistX = pt.x - touchStartPosRef.current.x;
-    const isOverSpace = touchStartKeyRef.current?.type === 'space';
-    const scrubThreshold = isOverSpace ? 13 : 20; // Más sensible sobre la barra de espacio
+    // 1. Navegación de cursor por desplazamiento horizontal sobre la barra de espacio
+    if (touchStartKeyRef.current?.type === 'space') {
+      const totalDistX = pt.x - touchStartPosRef.current.x;
+      if (Math.abs(totalDistX) > 14 || hasScrubbedRef.current) {
+        const deltaFromLast = pt.x - lastScrubXRef.current;
+        const scrubThreshold = 14;
+        if (Math.abs(deltaFromLast) >= scrubThreshold) {
+          const steps = Math.trunc(deltaFromLast / scrubThreshold);
+          onMoveCursor(steps);
 
-    // Si el desplazamiento horizontal supera el umbral, se activa el modo de navegación
-    if (Math.abs(totalDistX) > 16 || hasScrubbedRef.current) {
-      const deltaFromLast = pt.x - lastScrubXRef.current;
-      if (Math.abs(deltaFromLast) >= scrubThreshold) {
-        const steps = Math.trunc(deltaFromLast / scrubThreshold);
-        onMoveCursor(steps);
+          if (typeof window !== 'undefined' && 'navigator' in window && navigator.vibrate) {
+            navigator.vibrate(6);
+          }
 
-        if (typeof window !== 'undefined' && 'navigator' in window && navigator.vibrate) {
-          navigator.vibrate(6);
+          lastScrubXRef.current = pt.x;
+          hasScrubbedRef.current = true;
+          setActiveKeyId(null);
         }
+      }
+      return;
+    }
 
-        lastScrubXRef.current = pt.x;
-        hasScrubbedRef.current = true;
-        setActiveKeyId(null); // Quitar foco de tecla si se está navegando
+    // 2. Detección de micro-flick para teclas con carácter secundario
+    if (touchStartKeyRef.current?.secondaryChar) {
+      const dx = pt.x - touchStartPosRef.current.x;
+      const dy = pt.y - touchStartPosRef.current.y;
+      const dist = Math.hypot(dx, dy);
+
+      if (dist >= 11) {
+        if (!isFlickActiveRef.current) {
+          isFlickActiveRef.current = true;
+          setIsFlicking(true);
+          if (typeof window !== 'undefined' && 'navigator' in window && navigator.vibrate) {
+            navigator.vibrate(6);
+          }
+        }
+      } else if (dist < 7) {
+        if (isFlickActiveRef.current) {
+          isFlickActiveRef.current = false;
+          setIsFlicking(false);
+        }
       }
     }
   };
@@ -130,12 +156,19 @@ export const VirtualKeyboardCanvas: React.FC<VirtualKeyboardCanvasProps> = ({
     const pt = getSvgCoordinates(e) ?? activeTouch;
 
     if (!hasScrubbedRef.current && touchStartKeyRef.current && pt) {
-      // Pulsación estacionaria directa sin arrastre
       const key = touchStartKeyRef.current;
-      onKeyPress(key.char, key, pt);
-
-      if (typeof window !== 'undefined' && 'navigator' in window && navigator.vibrate) {
-        navigator.vibrate(8);
+      if (isFlickActiveRef.current && key.secondaryChar) {
+        // Gesto Flick: emite el carácter secundario
+        onKeyPress(key.secondaryChar, key, pt);
+        if (typeof window !== 'undefined' && 'navigator' in window && navigator.vibrate) {
+          navigator.vibrate(12);
+        }
+      } else {
+        // Toque simple (Tap): emite el carácter primario
+        onKeyPress(key.char, key, pt);
+        if (typeof window !== 'undefined' && 'navigator' in window && navigator.vibrate) {
+          navigator.vibrate(8);
+        }
       }
     }
 
@@ -143,6 +176,8 @@ export const VirtualKeyboardCanvas: React.FC<VirtualKeyboardCanvasProps> = ({
     touchStartPosRef.current = null;
     hasScrubbedRef.current = false;
     touchStartKeyRef.current = null;
+    isFlickActiveRef.current = false;
+    setIsFlicking(false);
     setActiveTouch(null);
     setActiveKeyId(null);
   };
@@ -152,6 +187,8 @@ export const VirtualKeyboardCanvas: React.FC<VirtualKeyboardCanvasProps> = ({
     touchStartPosRef.current = null;
     hasScrubbedRef.current = false;
     touchStartKeyRef.current = null;
+    isFlickActiveRef.current = false;
+    setIsFlicking(false);
     setActiveTouch(null);
     setActiveKeyId(null);
   };
@@ -200,22 +237,36 @@ export const VirtualKeyboardCanvas: React.FC<VirtualKeyboardCanvasProps> = ({
           <g className="pointer-events-none opacity-25">
             {layout.pivotPoints.right && (
               <>
-                <circle cx={layout.pivotPoints.right.x} cy={layout.pivotPoints.right.y} r={layout.arcRadii?.[0] ?? 295} fill="none" stroke="#64748b" strokeDasharray="3 3" strokeWidth="1" />
-                <circle cx={layout.pivotPoints.right.x} cy={layout.pivotPoints.right.y} r={layout.arcRadii?.[1] ?? 250} fill="none" stroke="#06b6d4" strokeDasharray="3 3" strokeWidth="1" />
-                <circle cx={layout.pivotPoints.right.x} cy={layout.pivotPoints.right.y} r={layout.arcRadii?.[2] ?? 205} fill="none" stroke="#10b981" strokeWidth="1.5" />
-                <circle cx={layout.pivotPoints.right.x} cy={layout.pivotPoints.right.y} r={layout.arcRadii?.[3] ?? 160} fill="none" stroke="#06b6d4" strokeDasharray="3 3" strokeWidth="1" />
-                <circle cx={layout.pivotPoints.right.x} cy={layout.pivotPoints.right.y} r={layout.arcRadii?.[4] ?? 118} fill="none" stroke="#64748b" strokeDasharray="2 2" strokeWidth="0.8" />
-                <circle cx={layout.pivotPoints.right.x} cy={layout.pivotPoints.right.y} r="6" fill="#10b981" />
+                {(layout.arcRadii ?? [236, 196, 154, 110]).map((r, idx) => (
+                  <circle
+                    key={`arc-r-${idx}`}
+                    cx={layout.pivotPoints.right!.x}
+                    cy={layout.pivotPoints.right!.y}
+                    r={r}
+                    fill="none"
+                    stroke={idx === 2 ? '#10b981' : '#06b6d4'}
+                    strokeDasharray={idx === 2 ? undefined : '3 3'}
+                    strokeWidth={idx === 2 ? 1.5 : 1}
+                  />
+                ))}
+                <circle cx={layout.pivotPoints.right.x} cy={layout.pivotPoints.right.y} r="5" fill="#10b981" />
               </>
             )}
             {layout.pivotPoints.left && (
               <>
-                <circle cx={layout.pivotPoints.left.x} cy={layout.pivotPoints.left.y} r={layout.arcRadii?.[0] ?? 295} fill="none" stroke="#64748b" strokeDasharray="3 3" strokeWidth="1" />
-                <circle cx={layout.pivotPoints.left.x} cy={layout.pivotPoints.left.y} r={layout.arcRadii?.[1] ?? 250} fill="none" stroke="#06b6d4" strokeDasharray="3 3" strokeWidth="1" />
-                <circle cx={layout.pivotPoints.left.x} cy={layout.pivotPoints.left.y} r={layout.arcRadii?.[2] ?? 205} fill="none" stroke="#10b981" strokeWidth="1.5" />
-                <circle cx={layout.pivotPoints.left.x} cy={layout.pivotPoints.left.y} r={layout.arcRadii?.[3] ?? 160} fill="none" stroke="#06b6d4" strokeDasharray="3 3" strokeWidth="1" />
-                <circle cx={layout.pivotPoints.left.x} cy={layout.pivotPoints.left.y} r={layout.arcRadii?.[4] ?? 118} fill="none" stroke="#64748b" strokeDasharray="2 2" strokeWidth="0.8" />
-                <circle cx={layout.pivotPoints.left.x} cy={layout.pivotPoints.left.y} r="6" fill="#10b981" />
+                {(layout.arcRadii ?? [236, 196, 154, 110]).map((r, idx) => (
+                  <circle
+                    key={`arc-l-${idx}`}
+                    cx={layout.pivotPoints.left!.x}
+                    cy={layout.pivotPoints.left!.y}
+                    r={r}
+                    fill="none"
+                    stroke={idx === 2 ? '#10b981' : '#06b6d4'}
+                    strokeDasharray={idx === 2 ? undefined : '3 3'}
+                    strokeWidth={idx === 2 ? 1.5 : 1}
+                  />
+                ))}
+                <circle cx={layout.pivotPoints.left.x} cy={layout.pivotPoints.left.y} r="5" fill="#10b981" />
               </>
             )}
           </g>
@@ -233,7 +284,7 @@ export const VirtualKeyboardCanvas: React.FC<VirtualKeyboardCanvasProps> = ({
           />
         )}
 
-        {/* 3. Teclas Fijas Ergonómicas */}
+        {/* 3. Teclas Fijas Ergonómicas (Opción C: Tap vs Flick) */}
         {layout.keys.map(key => {
           const isActive = activeKeyId === key.id;
           const isSpace = key.type === 'space';
@@ -242,7 +293,7 @@ export const VirtualKeyboardCanvas: React.FC<VirtualKeyboardCanvasProps> = ({
           const isTildeKey = key.char === '´';
           const isShiftKey = key.char === 'shift';
           const isVowel = VOWEL_CHARS.has(key.char.toLowerCase());
-          const isSharedKey = !!key.alternateChar;
+          const hasSecondary = Boolean(key.secondaryChar);
 
           let keyFill = '#172033';
           let textColor = '#f1f5f9';
@@ -250,10 +301,17 @@ export const VirtualKeyboardCanvas: React.FC<VirtualKeyboardCanvasProps> = ({
           let strokeWidth = 1.2;
 
           if (isActive) {
-            keyFill = '#38bdf8';
-            textColor = '#0f172a';
-            borderColor = '#bae6fd';
-            strokeWidth = 2.5;
+            if (isFlicking && hasSecondary) {
+              keyFill = '#1c1917';
+              textColor = '#94a3b8';
+              borderColor = '#fbbf24';
+              strokeWidth = 2.8;
+            } else {
+              keyFill = '#38bdf8';
+              textColor = '#0f172a';
+              borderColor = '#bae6fd';
+              strokeWidth = 2.5;
+            }
           } else if (isTildeKey) {
             if (accentPending) {
               keyFill = '#f59e0b';
@@ -293,16 +351,18 @@ export const VirtualKeyboardCanvas: React.FC<VirtualKeyboardCanvasProps> = ({
             keyFill = 'url(#spacebarGradient)';
             borderColor = '#0284c7';
             textColor = '#38bdf8';
-          } else if (isSharedKey) {
-            // Tecla de letra compartida (J·H, Z·X, K·W)
-            keyFill = '#1a2236';
-            borderColor = '#3b82f6';
-            textColor = '#e0f2fe';
           } else if (isAction) {
             keyFill = '#1e293b';
             borderColor = '#475569';
             textColor = '#e2e8f0';
           }
+
+          const primaryDisplay = (isShiftKey && shiftState === 'caps') ? '⇪' : key.display;
+          const secondaryDisplay = key.secondaryChar
+            ? (key.secondaryChar.length === 1 && /[a-zñ]/i.test(key.secondaryChar)
+                ? key.secondaryChar.toUpperCase()
+                : key.secondaryChar)
+            : null;
 
           return (
             <g key={key.id} filter="url(#keyGlow)">
@@ -338,30 +398,44 @@ export const VirtualKeyboardCanvas: React.FC<VirtualKeyboardCanvasProps> = ({
                     stroke={borderColor}
                     strokeWidth={strokeWidth}
                   />
+
+                  {/* Letra o Función Principal (Tap) */}
                   <text
-                    x={key.x}
-                    y={key.y + (isAction && key.display.length === 1 ? 5 : 4.5)}
+                    x={hasSecondary ? key.x - key.radius * 0.16 : key.x}
+                    y={key.y + (hasSecondary ? key.radius * 0.28 : (isAction && key.display.length === 1 ? 5 : 4.5))}
                     textAnchor="middle"
-                    fill={textColor}
-                    fontSize={isSharedKey ? '11px' : isNumber ? '12.5px' : isAction ? '13px' : '14px'}
-                    fontWeight={isActive || isNumber || isSharedKey ? '800' : '600'}
+                    fill={isActive && isFlicking && hasSecondary ? '#64748b' : textColor}
+                    fontSize={
+                      hasSecondary
+                        ? `${Math.round(key.radius * 0.95)}px`
+                        : isNumber
+                        ? '12.5px'
+                        : isAction
+                        ? '13px'
+                        : '14px'
+                    }
+                    fontWeight={isActive || isNumber || hasSecondary ? '800' : '600'}
                     className="pointer-events-none select-none font-sans"
                   >
-                    {isShiftKey && shiftState === 'caps' ? '⇪' : key.display}
+                    {primaryDisplay}
                   </text>
 
-                  {/* Carácter secundario (número o símbolo) */}
-                  {key.secondaryChar && !isNumber && (
+                  {/* Carácter Secundario (Flick) en la esquina superior derecha */}
+                  {secondaryDisplay && (
                     <text
-                      x={key.x + key.radius * 0.45}
-                      y={key.y - key.radius * 0.35}
+                      x={key.x + key.radius * 0.42}
+                      y={key.y - key.radius * 0.28}
                       textAnchor="middle"
-                      fill="#64748b"
-                      fontSize="8px"
-                      fontWeight="bold"
-                      className="pointer-events-none select-none"
+                      fill={isActive && isFlicking ? '#fbbf24' : '#94a3b8'}
+                      fontSize={
+                        isActive && isFlicking
+                          ? `${Math.round(key.radius * 0.75)}px`
+                          : `${Math.max(8, Math.round(key.radius * 0.52))}px`
+                      }
+                      fontWeight={isActive && isFlicking ? '900' : '700'}
+                      className="pointer-events-none select-none font-sans"
                     >
-                      {key.secondaryChar}
+                      {secondaryDisplay}
                     </text>
                   )}
                 </g>

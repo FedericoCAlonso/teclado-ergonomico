@@ -1,18 +1,14 @@
-import React, { useState, useMemo, useRef } from 'react';
+import React, { useState, useMemo } from 'react';
 import type { LayoutDefinition, KeyDefinition, ShiftMode } from './types';
 import type { Point2D } from './biomechanics/polarModel';
 import {
   radialSingleThumbLayout,
   qwertyBaselineLayout,
-  createRadialSingleThumbLayout,
-  DEFAULT_RADIAL_TUNING,
-  type RadialTuningParams
 } from './layouts';
 import { TypingTracker } from './metrics/typingTracker';
 import { evaluateLayoutCost } from './optimizer/costFunction';
 import { VirtualKeyboardCanvas } from './components/VirtualKeyboardCanvas';
 import { CursorToolbar } from './components/CursorToolbar';
-import { BiomechanicTuningPanel } from './components/BiomechanicTuningPanel';
 import { MetricsPanel } from './components/MetricsPanel';
 import { LayoutControls } from './components/LayoutControls';
 import { Trash2, Copy, Check, Info, ShieldCheck, Activity } from 'lucide-react';
@@ -24,38 +20,8 @@ const ACCENTED_VOWELS: Record<string, string> = {
   'A': 'Á', 'E': 'É', 'I': 'Í', 'O': 'Ó', 'U': 'Ú'
 };
 
-/**
- * Resuelve la primera letra preferente en teclas compartidas (J·H, Z·X, K·W)
- * basada en la fonotáctica y ortografía del español.
- */
-function resolveSharedInitialChar(keyDef: KeyDefinition, beforeText: string): string {
-  if (!keyDef.alternateChar) return keyDef.char;
-  const lastChar = beforeText.slice(-1).toLowerCase();
-
-  // Regla fonotáctica para J·H:
-  // Tras 'c' (dígrafo "ch" común en castellano) o 'p' ("ph"), se usa 'h'.
-  if (keyDef.char === 'j' && (lastChar === 'c' || lastChar === 'p')) {
-    return keyDef.alternateChar; // 'h'
-  }
-
-  // Regla fonotáctica para Z·X:
-  // Tras 'e' (prefijos y raíces "ex-": examen, éxito, explicar, extra, texto), se usa 'x'.
-  if (keyDef.char === 'z' && (lastChar === 'e' || lastChar === 't')) {
-    return keyDef.alternateChar; // 'x'
-  }
-
-  // Regla fonotáctica para K·W:
-  // Tras 's' ("sw": switch, swing), se usa 'w'.
-  if (keyDef.char === 'k' && lastChar === 's') {
-    return keyDef.alternateChar; // 'w'
-  }
-
-  return keyDef.char;
-}
-
 export const App: React.FC = () => {
   const [currentLayout, setCurrentLayout] = useState<LayoutDefinition>(radialSingleThumbLayout);
-  const [tuningParams, setTuningParams] = useState<RadialTuningParams>(DEFAULT_RADIAL_TUNING);
   const [inputText, setInputText] = useState<string>('');
   const [cursorPos, setCursorPos] = useState<number>(0);
   const [accentPending, setAccentPending] = useState<boolean>(false);
@@ -67,24 +33,7 @@ export const App: React.FC = () => {
   const [copied, setCopied] = useState<boolean>(false);
   const [showGuide, setShowGuide] = useState<boolean>(false);
 
-  // Layout activo recalculado dinámicamente según los 4 deslizadores de ajuste
-  const activeLayout = useMemo(() => {
-    if (currentLayout.mode === 'single-thumb-right') {
-      return createRadialSingleThumbLayout(tuningParams, false);
-    }
-    if (currentLayout.mode === 'single-thumb-left') {
-      return createRadialSingleThumbLayout(tuningParams, true);
-    }
-    return currentLayout;
-  }, [currentLayout, tuningParams]);
-
-  // Registro de última pulsación en teclas compartidas para detectar doble pulsación (toggle alternativo)
-  const lastSharedTapRef = useRef<{
-    keyId: string;
-    charTyped: string;
-    timestamp: number;
-    cursorPos: number;
-  } | null>(null);
+  const activeLayout = currentLayout;
 
   const [tracker] = useState(() => new TypingTracker());
   const [metrics, setMetrics] = useState(() => tracker.getMetrics());
@@ -104,7 +53,6 @@ export const App: React.FC = () => {
 
   // Manejador del movimiento del cursor (gesto de deslizar o flechas)
   const handleMoveCursor = (delta: number) => {
-    lastSharedTapRef.current = null;
     setCursorPos((prev) => {
       const next = prev + delta;
       return Math.max(0, Math.min(inputText.length, next));
@@ -115,10 +63,10 @@ export const App: React.FC = () => {
     setShiftState((prev) => (prev === 'none' ? 'shift' : prev === 'shift' ? 'caps' : 'none'));
   };
 
-  // Manejador central de pulsación de teclas con soporte para Shift, pares fonotácticos y tildes
-  const handleKeyPress = (char: string, keyDef: KeyDefinition, touchPoint: Point2D) => {
+  // Manejador central de pulsación de teclas (Opción C: Tap vs Flick determinista)
+  const handleKeyPress = (char: string, _keyDef: KeyDefinition, touchPoint: Point2D) => {
     // 0. Tecla de mayúsculas (Shift / Caps)
-    if (char === 'shift' || (keyDef.type === 'action' && keyDef.id.includes('shift'))) {
+    if (char === 'shift') {
       handleToggleShift();
       return;
     }
@@ -133,7 +81,6 @@ export const App: React.FC = () => {
         setInputText(newText);
         setCursorPos(cursorPos + 1);
         setAccentPending(false);
-        lastSharedTapRef.current = null;
         tracker.recordKeystroke(touchPoint, '´');
         setMetrics(tracker.getMetrics(newText.length));
       } else {
@@ -157,13 +104,12 @@ export const App: React.FC = () => {
         setCursorPos(cursorPos + 1);
         setAccentPending(false);
         if (shiftState === 'shift') setShiftState('none');
-        lastSharedTapRef.current = null;
         tracker.recordKeystroke(touchPoint, accented);
         setMetrics(tracker.getMetrics(newText.length));
         return;
       } else {
         // No era vocal: insertar tilde suelta y continuar con el carácter presionado
-        const effectiveChar = (shiftState !== 'none' && char.length === 1) ? char.toUpperCase() : char;
+        const effectiveChar = (shiftState !== 'none' && char.length === 1 && /[a-zñ]/i.test(char)) ? char.toUpperCase() : char;
         const before = inputText.slice(0, cursorPos);
         const after = inputText.slice(cursorPos);
         const newText = before + '´' + effectiveChar + after;
@@ -171,7 +117,6 @@ export const App: React.FC = () => {
         setCursorPos(cursorPos + 1 + effectiveChar.length);
         setAccentPending(false);
         if (shiftState === 'shift') setShiftState('none');
-        lastSharedTapRef.current = null;
         tracker.recordKeystroke(touchPoint, effectiveChar);
         setMetrics(tracker.getMetrics(newText.length));
         return;
@@ -186,7 +131,6 @@ export const App: React.FC = () => {
         const newText = before + after;
         setInputText(newText);
         setCursorPos(cursorPos - 1);
-        lastSharedTapRef.current = null;
         tracker.recordKeystroke(touchPoint, '\b');
         setMetrics(tracker.getMetrics(newText.length));
       }
@@ -200,7 +144,6 @@ export const App: React.FC = () => {
       const newText = before + '\n' + after;
       setInputText(newText);
       setCursorPos(cursorPos + 1);
-      lastSharedTapRef.current = null;
       tracker.recordKeystroke(touchPoint, '\n');
       setMetrics(tracker.getMetrics(newText.length));
       return;
@@ -213,52 +156,14 @@ export const App: React.FC = () => {
       const newText = before + '\t' + after;
       setInputText(newText);
       setCursorPos(cursorPos + 1);
-      lastSharedTapRef.current = null;
       tracker.recordKeystroke(touchPoint, '\t');
       setMetrics(tracker.getMetrics(newText.length));
       return;
     }
 
-    // 6. Doble pulsación en teclas compartidas (J·H, Z·X, K·W) para alternar
-    const now = Date.now();
-    const isSharedKey = Boolean(keyDef.alternateChar);
-    if (
-      isSharedKey &&
-      lastSharedTapRef.current &&
-      lastSharedTapRef.current.keyId === keyDef.id &&
-      now - lastSharedTapRef.current.timestamp < 550 &&
-      cursorPos === lastSharedTapRef.current.cursorPos &&
-      cursorPos > 0
-    ) {
-      const lastCharTyped = lastSharedTapRef.current.charTyped;
-      const isUpper = lastCharTyped === lastCharTyped.toUpperCase() && lastCharTyped !== lastCharTyped.toLowerCase();
-      const altChar = keyDef.alternateChar!;
-      const toggledChar = (lastCharTyped.toLowerCase() === keyDef.char.toLowerCase())
-        ? (isUpper ? altChar.toUpperCase() : altChar.toLowerCase())
-        : (isUpper ? keyDef.char.toUpperCase() : keyDef.char.toLowerCase());
-
-      const before = inputText.slice(0, cursorPos - 1);
-      const after = inputText.slice(cursorPos);
-      const newText = before + toggledChar + after;
-      setInputText(newText);
-      lastSharedTapRef.current = {
-        keyId: keyDef.id,
-        charTyped: toggledChar,
-        timestamp: now,
-        cursorPos: cursorPos
-      };
-      tracker.recordKeystroke(touchPoint, toggledChar);
-      setMetrics(tracker.getMetrics(newText.length));
-      return;
-    }
-
-    // 7. Primera pulsación o tecla estándar
+    // 6. Inserción directa de carácter (Tap o Flick)
     let finalChar = char;
-    if (isSharedKey) {
-      finalChar = resolveSharedInitialChar(keyDef, inputText.slice(0, cursorPos));
-    }
-
-    if (shiftState !== 'none' && finalChar.length === 1) {
+    if (shiftState !== 'none' && finalChar.length === 1 && /[a-zñ]/i.test(finalChar)) {
       finalChar = finalChar.toUpperCase();
       if (shiftState === 'shift') {
         setShiftState('none');
@@ -272,17 +177,6 @@ export const App: React.FC = () => {
     const nextCursorPos = cursorPos + finalChar.length;
     setCursorPos(nextCursorPos);
 
-    if (isSharedKey) {
-      lastSharedTapRef.current = {
-        keyId: keyDef.id,
-        charTyped: finalChar,
-        timestamp: now,
-        cursorPos: nextCursorPos
-      };
-    } else {
-      lastSharedTapRef.current = null;
-    }
-
     tracker.recordKeystroke(touchPoint, finalChar);
     setMetrics(tracker.getMetrics(newText.length));
   };
@@ -292,7 +186,6 @@ export const App: React.FC = () => {
     setCursorPos(0);
     setAccentPending(false);
     setShiftState('none');
-    lastSharedTapRef.current = null;
     tracker.reset();
     setMetrics(tracker.getMetrics());
   };
@@ -322,10 +215,10 @@ export const App: React.FC = () => {
           </div>
           <div>
             <h1 className="text-base font-black tracking-tight leading-tight text-white m-0">
-              Cotizador Polar <span className="text-cyan-400 font-medium text-xs">v1.2</span>
+              Cotizador Polar <span className="text-cyan-400 font-medium text-xs">v1.3</span>
             </h1>
             <p className="text-[10px] text-slate-400 font-medium m-0">
-              Arco Completo • Números Directos • Tilde Dedicada • Cursor Gestual
+              14 Botones Dobles (Tap / Flick) • Sin Predictores • Calibración Biomecánica
             </p>
           </div>
         </div>
@@ -345,7 +238,7 @@ export const App: React.FC = () => {
           <div className="flex items-center justify-between border-b border-slate-800 pb-1.5">
             <span className="font-bold text-cyan-400 flex items-center gap-1.5 text-xs">
               <ShieldCheck className="w-4 h-4 text-emerald-400" />
-              Nuevas Mejoras Ergonómicas
+              Diseño Ergonómico Opción C (Tap vs Flick)
             </span>
             <button
               onClick={() => setShowGuide(false)}
@@ -355,13 +248,13 @@ export const App: React.FC = () => {
             </button>
           </div>
           <p>
-            <strong>1. Arco desde el Extremo Izquierdo:</strong> El pulgar abarca naturalmente todo el ancho de la pantalla (x ≈ 24px a 336px), brindando teclas con espaciado amplio y sin apiñamiento.
+            <strong>1. 14 Botones Dobles (Tap vs Flick):</strong> Las 27 letras del español organizadas en 14 botones amplios. Toque simple (Tap) para la letra más frecuente (~94%). Micro-deslizamiento (Flick) para la secundaria (~6%). Sin motores predictivos: 100% determinista y con memoria muscular fija.
           </p>
           <p>
-            <strong>2. Fila Directa de Números (1-0):</strong> Acceso instantáneo a los dígitos en el arco superior con un solo toque, sin pantallas secundarias.
+            <strong>2. Densidad Creciente Concéntrica:</strong> Controles (5) &lt; Golden Arc (6) &lt; Upper Arc (8) &lt; Números Directos (10). Teclas de mayor tamaño sin apiñamiento en el arco natural del pulgar.
           </p>
           <p>
-            <strong>3. Tecla de Tilde Dedicada (´):</strong> Comportamiento de tecla muerta tradicional: pulsa <kbd className="px-1 bg-slate-800 rounded text-amber-300">´</kbd> y luego la vocal deseada (<kbd>a</kbd>, <kbd>e</kbd>, <kbd>i</kbd>, <kbd>o</kbd>, <kbd>u</kbd>) para obtener <kbd>á</kbd>, <kbd>é</kbd>, <kbd>í</kbd>, <kbd>ó</kbd>, <kbd>ú</kbd>.
+            <strong>3. Tecla de Tilde Dedicada (´):</strong> Comportamiento de tecla muerta tradicional: pulsa <kbd className="px-1 bg-slate-800 rounded text-amber-300">´</kbd> y luego la vocal (<kbd>a</kbd>, <kbd>e</kbd>, <kbd>i</kbd>, <kbd>o</kbd>, <kbd>u</kbd>) para obtener <kbd>á</kbd>, <kbd>é</kbd>, <kbd>í</kbd>, <kbd>ó</kbd>, <kbd>ú</kbd>.
           </p>
           <p>
             <strong>4. Control de Cursor por Gestos:</strong> Desliza horizontalmente el pulgar sobre la barra de espacio (<kbd>ESPACIO ⟷</kbd>) para mover el cursor con precisión milimétrica carácter a carácter.
@@ -446,13 +339,6 @@ export const App: React.FC = () => {
         onToggleAccent={() => setAccentPending(!accentPending)}
         onToggleShift={handleToggleShift}
         onInsertChar={(char) => handleKeyPress(char, { id: 'k_quick', char, display: char, type: 'punctuation', x: 0, y: 0, radius: 0 }, { x: 180, y: 160 })}
-      />
-
-      {/* Panel de Calibración con 4 Deslizadores de Posición y Tamaño */}
-      <BiomechanicTuningPanel
-        params={tuningParams}
-        onChange={setTuningParams}
-        onReset={() => setTuningParams(DEFAULT_RADIAL_TUNING)}
       />
 
       {/* Lienzo del Teclado Táctil Interactivo */}

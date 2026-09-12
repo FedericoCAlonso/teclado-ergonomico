@@ -10,8 +10,8 @@ export interface RadialTuningParams {
 export const DEFAULT_RADIAL_TUNING: RadialTuningParams = {
   pivotX: 332,
   pivotY: 325,
-  arcScale: 100,
-  keyScale: 100
+  arcScale: 80,
+  keyScale: 75
 };
 
 /**
@@ -84,9 +84,10 @@ function createRibbonPath(
 }
 
 /**
- * Genera el layout radial con parámetros de ajuste en tiempo real.
- * Cumple estrictamente la ley de escala polar: menor radio -> menos botones;
- * mayor radio -> más botones (5 < 7 < 9 < 10 < 11).
+ * Genera el layout radial con botones dobles (Opción C: Tap vs Flick).
+ * Cumple estrictamente la ley de escala polar con densidad creciente:
+ * Controles (5) < Golden Arc (6) < Upper Arc (8) < Numbers Arc (10).
+ * Total: 14 botones dobles con las 27 letras del español organizadas por frecuencia y fonotáctica.
  */
 export function createRadialSingleThumbLayout(
   params: Partial<RadialTuningParams> = {},
@@ -97,123 +98,107 @@ export function createRadialSingleThumbLayout(
   const arcScale = (params.arcScale ?? DEFAULT_RADIAL_TUNING.arcScale) / 100;
   const keyScale = (params.keyScale ?? DEFAULT_RADIAL_TUNING.keyScale) / 100;
 
-  // Radios escalados según el factor de tamaño de arco
+  // Radios concéntricos calculados sobre la base angular ergonómica
   const rNumbers = Math.round(295 * arcScale);
-  const rUpper = Math.round(250 * arcScale);
-  const rGolden = Math.round(205 * arcScale);
-  const rMid = Math.round(160 * arcScale);
-  const rControls = Math.round(118 * arcScale);
-  const rInSpace = Math.round(65 * arcScale);
-  const rOutSpace = Math.round(98 * arcScale);
+  const rUpper = Math.round(245 * arcScale);
+  const rGolden = Math.round(192 * arcScale);
+  const rControls = Math.round(138 * arcScale);
+  const rInSpace = Math.round(52 * arcScale);
+  const rOutSpace = Math.round(92 * arcScale);
 
-  // 1. Arco Exterior de Números y Signo ¿? (r = rNumbers px, 11 botones)
-  const arc0KeysData: Array<{ id: string; char: string; display: string; type: KeyDefinition['type'] }> = [
-    { id: 'k_quest', char: '¿', display: '¿?', type: 'punctuation' },
-    { id: 'k_1', char: '1', display: '1', type: 'number' },
-    { id: 'k_2', char: '2', display: '2', type: 'number' },
-    { id: 'k_3', char: '3', display: '3', type: 'number' },
-    { id: 'k_4', char: '4', display: '4', type: 'number' },
-    { id: 'k_5', char: '5', display: '5', type: 'number' },
-    { id: 'k_6', char: '6', display: '6', type: 'number' },
-    { id: 'k_7', char: '7', display: '7', type: 'number' },
-    { id: 'k_8', char: '8', display: '8', type: 'number' },
-    { id: 'k_9', char: '9', display: '9', type: 'number' },
-    { id: 'k_0', char: '0', display: '0', type: 'number' },
+  // 1. Arco Exterior de Números y Símbolos Directos (r = rNumbers px, 10 botones)
+  const arc0KeysData: Array<{ id: string; char: string; display: string; sec: string }> = [
+    { id: 'k_1', char: '1', display: '1', sec: '!' },
+    { id: 'k_2', char: '2', display: '2', sec: '"' },
+    { id: 'k_3', char: '3', display: '3', sec: '#' },
+    { id: 'k_4', char: '4', display: '4', sec: '$' },
+    { id: 'k_5', char: '5', display: '5', sec: '%' },
+    { id: 'k_6', char: '6', display: '6', sec: '&' },
+    { id: 'k_7', char: '7', display: '7', sec: '/' },
+    { id: 'k_8', char: '8', display: '8', sec: '(' },
+    { id: 'k_9', char: '9', display: '9', sec: ')' },
+    { id: 'k_0', char: '0', display: '0', sec: '=' },
   ];
   const arc0Numbers: KeyDefinition[] = arc0KeysData.map((k, i) => {
-    const deg = -172 + i * ((172 - 92) / (arc0KeysData.length - 1));
+    const deg = -172 + i * ((172 - 90) / (arc0KeysData.length - 1));
     return createPolarKey(k.id, k.char, k.display, rNumbers, deg, {
-      type: k.type,
-      radius: Math.round(14.5 * keyScale),
+      type: 'number',
+      secondaryChar: k.sec,
+      radius: Math.round(18 * keyScale),
       px: pivotX,
       py: pivotY
     });
   });
 
-  // 2. Arco Superior de Consonantes Bajas, T y Pares Fonotácticos (r = rUpper px, 10 botones)
-  const arc1KeysData: Array<{ id: string; char: string; display: string; alt?: string; sec?: string }> = [
-    { id: 'k_q', char: 'q', display: 'Q', sec: '@' },
-    { id: 'k_b', char: 'b', display: 'B', sec: '#' },
-    { id: 'k_g', char: 'g', display: 'G', sec: '$' },
-    { id: 'k_v', char: 'v', display: 'V', sec: '%' },
-    { id: 'k_f', char: 'f', display: 'F', sec: '&' },
-    { id: 'k_y', char: 'y', display: 'Y', sec: '*' },
-    { id: 'k_t', char: 't', display: 'T', sec: '/' },
-    { id: 'k_kw', char: 'k', display: 'K·W', alt: 'w', sec: '=' },
-    { id: 'k_jh', char: 'j', display: 'J·H', alt: 'h', sec: '(' },
-    { id: 'k_zx', char: 'z', display: 'Z·X', alt: 'x', sec: ')' },
+  // 2. Arco Superior de Letras Dobles (r = rUpper px, 8 botones)
+  // Frecuentes (Tap) + Infrecuentes relacionadas (Flick)
+  const arc1KeysData: Array<{ id: string; char: string; display: string; sec: string }> = [
+    { id: 'k_iy', char: 'i', display: 'I', sec: 'y' },
+    { id: 'k_dv', char: 'd', display: 'D', sec: 'v' },
+    { id: 'k_lh', char: 'l', display: 'L', sec: 'h' },
+    { id: 'k_cq', char: 'c', display: 'C', sec: 'q' },
+    { id: 'k_tx', char: 't', display: 'T', sec: 'x' },
+    { id: 'k_uw', char: 'u', display: 'U', sec: 'w' },
+    { id: 'k_mg', char: 'm', display: 'M', sec: 'g' },
+    { id: 'k_pb', char: 'p', display: 'P', sec: 'b' },
   ];
   const arc1Upper: KeyDefinition[] = arc1KeysData.map((k, i) => {
-    const deg = -170 + i * ((170 - 94) / (arc1KeysData.length - 1));
+    const deg = -170 + i * ((170 - 90) / (arc1KeysData.length - 1));
     return createPolarKey(k.id, k.char, k.display, rUpper, deg, {
-      radius: Math.round(16.5 * keyScale),
-      alternateChar: k.alt,
+      radius: Math.round(22 * keyScale),
       secondaryChar: k.sec,
       px: pivotX,
       py: pivotY
     });
   });
 
-  // 3. Arco Dorado (Sweet Spot del Español - r = rGolden px, 9 botones de máxima frecuencia)
-  const arc2KeysData: Array<{ id: string; char: string; display: string; sec?: string }> = [
-    { id: 'k_d', char: 'd', display: 'D', sec: '«' },
-    { id: 'k_l', char: 'l', display: 'L', sec: '»' },
-    { id: 'k_c', char: 'c', display: 'C', sec: '<' },
-    { id: 'k_r', char: 'r', display: 'R', sec: '>' },
-    { id: 'k_e', char: 'e', display: 'E' },
-    { id: 'k_a', char: 'a', display: 'A' },
-    { id: 'k_o', char: 'o', display: 'O' },
-    { id: 'k_s', char: 's', display: 'S' },
-    { id: 'k_n', char: 'n', display: 'N' },
+  // 3. Arco Dorado Interior de Letras Dobles (r = rGolden px, 6 botones)
+  // Las 6 letras reinas del español (Tap) + Infrecuentes / puntuación (Flick)
+  const arc2KeysData: Array<{ id: string; char: string; display: string; sec: string }> = [
+    { id: 'k_ej', char: 'e', display: 'E', sec: 'j' },
+    { id: 'k_ak', char: 'a', display: 'A', sec: 'k' },
+    { id: 'k_odot', char: 'o', display: 'O', sec: '.' },
+    { id: 'k_sz', char: 's', display: 'S', sec: 'z' },
+    { id: 'k_rf', char: 'r', display: 'R', sec: 'f' },
+    { id: 'k_nene', char: 'n', display: 'N', sec: 'ñ' },
   ];
   const arc2Golden: KeyDefinition[] = arc2KeysData.map((k, i) => {
-    const deg = -170 + i * ((170 - 94) / (arc2KeysData.length - 1));
+    const deg = -168 + i * ((168 - 92) / (arc2KeysData.length - 1));
     return createPolarKey(k.id, k.char, k.display, rGolden, deg, {
-      radius: Math.round(17.5 * keyScale),
+      radius: Math.round(24 * keyScale),
       secondaryChar: k.sec,
       px: pivotX,
       py: pivotY
     });
   });
 
-  // 4. Arco Medio (Tab, Shift, U, I, M, P, Ñ - r = rMid px, 7 botones)
-  const arc3KeysData: Array<{ id: string; char: string; display: string; type?: KeyDefinition['type'] }> = [
-    { id: 'k_tab', char: '\t', display: '⇥', type: 'action' },
-    { id: 'k_shift', char: 'shift', display: '⇧', type: 'action' },
-    { id: 'k_u', char: 'u', display: 'U' },
-    { id: 'k_i', char: 'i', display: 'I' },
-    { id: 'k_m', char: 'm', display: 'M' },
-    { id: 'k_p', char: 'p', display: 'P' },
-    { id: 'k_ene', char: 'ñ', display: 'Ñ' },
+  // 4. Arco Interior de Controles (r = rControls px, 5 botones)
+  const arc3ControlsData: Array<{
+    id: string;
+    char: string;
+    display: string;
+    sec?: string;
+    type: KeyDefinition['type'];
+    deg: number;
+    rad: number;
+  }> = [
+    { id: 'k_shift', char: 'shift', display: '⇧', sec: '\t', type: 'action', deg: -165, rad: 20 },
+    { id: 'k_tilde', char: '´', display: '´', sec: '¿', type: 'action', deg: -147, rad: 20 },
+    { id: 'k_comma', char: ',', display: ',', sec: ':', type: 'punctuation', deg: -129, rad: 18 },
+    { id: 'k_bksp', char: '\b', display: '⌫', type: 'action', deg: -111, rad: 20 },
+    { id: 'k_enter', char: '\n', display: '↵', type: 'action', deg: -93, rad: 20 },
   ];
-  const arc3Mid: KeyDefinition[] = arc3KeysData.map((k, i) => {
-    const deg = -170 + i * ((170 - 94) / (arc3KeysData.length - 1));
-    return createPolarKey(k.id, k.char, k.display, rMid, deg, {
-      radius: Math.round(16 * keyScale),
-      type: k.type ?? 'letter',
-      px: pivotX,
-      py: pivotY
-    });
-  });
-
-  // 5. Controles Flanqueantes, Tilde y Puntuación (r = rControls px, 5 botones)
-  const arc4ControlsData: Array<{ id: string; char: string; display: string; type: KeyDefinition['type']; deg: number; rad: number }> = [
-    { id: 'k_tilde', char: '´', display: '´', type: 'action', deg: -160, rad: 16 },
-    { id: 'k_comma', char: ',', display: ',', type: 'punctuation', deg: -142, rad: 14 },
-    { id: 'k_dot', char: '.', display: '.', type: 'punctuation', deg: -124, rad: 14 },
-    { id: 'k_bksp', char: '\b', display: '⌫', type: 'action', deg: -104, rad: 16 },
-    { id: 'k_enter', char: '\n', display: '↵', type: 'action', deg: -84, rad: 16 },
-  ];
-  const arc4Controls: KeyDefinition[] = arc4ControlsData.map(k => {
+  const arc3Controls: KeyDefinition[] = arc3ControlsData.map(k => {
     return createPolarKey(k.id, k.char, k.display, rControls, k.deg, {
       type: k.type,
+      secondaryChar: k.sec,
       radius: Math.round(k.rad * keyScale),
       px: pivotX,
       py: pivotY
     });
   });
 
-  // 6. Barra Espaciadora en Segmento de Arco (Curva Ergonómica)
+  // 5. Barra Espaciadora en Segmento de Cinta Curva
   const spacebarRightPath = createRibbonPath(pivotX, pivotY, rInSpace, rOutSpace, -155, -95, false);
   const rMidSpace = (rInSpace + rOutSpace) / 2;
   const spaceKeyRight: KeyDefinition = {
@@ -223,7 +208,7 @@ export function createRadialSingleThumbLayout(
     type: 'space',
     x: Math.round(pivotX + rMidSpace * Math.cos((-125 * Math.PI) / 180)),
     y: Math.round(pivotY + rMidSpace * Math.sin((-125 * Math.PI) / 180)),
-    radius: Math.round(30 * keyScale),
+    radius: Math.round(32 * keyScale),
     path: spacebarRightPath,
     handAssigned: 'right'
   };
@@ -232,23 +217,22 @@ export function createRadialSingleThumbLayout(
     ...arc0Numbers,
     ...arc1Upper,
     ...arc2Golden,
-    ...arc3Mid,
-    ...arc4Controls,
+    ...arc3Controls,
     spaceKeyRight
   ];
 
   if (!isLeft) {
     return {
       id: 'radial-single-thumb-right',
-      name: 'Polar Ergonómico Monomanual (Diestro)',
-      description: 'Arco polar adaptativo con menor densidad en menor radio (5 < 7 < 9 < 10 < 11). Incluye números, barra curva, tilde, Shift y Tab.',
+      name: 'Polar Ergonómico Monomanual (Diestro - 14 Botones Dobles)',
+      description: '14 botones dobles (Tap vs Flick) con las 27 letras del español. Densidad creciente: Controles (5) < Golden (6) < Upper (8) < Números (10).',
       mode: 'single-thumb-right',
       width: 360,
       height: 330,
       pivotPoints: {
         right: { x: pivotX, y: pivotY }
       },
-      arcRadii: [rNumbers, rUpper, rGolden, rMid, rControls],
+      arcRadii: [rNumbers, rUpper, rGolden, rControls],
       keys: rightKeys
     };
   }
@@ -280,15 +264,15 @@ export function createRadialSingleThumbLayout(
 
   return {
     id: 'radial-single-thumb-left',
-    name: 'Polar Ergonómico Monomanual (Zurdo)',
-    description: 'Layout radial simétrico para pulgar izquierdo con densidad creciente (5 < 7 < 9 < 10 < 11).',
+    name: 'Polar Ergonómico Monomanual (Zurdo - 14 Botones Dobles)',
+    description: 'Layout radial simétrico para pulgar izquierdo con 14 botones dobles (5 < 6 < 8 < 10).',
     mode: 'single-thumb-left',
     width: 360,
     height: 330,
     pivotPoints: {
       left: { x: leftPivotX, y: pivotY }
     },
-    arcRadii: [rNumbers, rUpper, rGolden, rMid, rControls],
+    arcRadii: [rNumbers, rUpper, rGolden, rControls],
     keys: leftKeys
   };
 }

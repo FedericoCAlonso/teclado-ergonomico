@@ -9,6 +9,13 @@ function tapKey(svg: SVGSVGElement, key: KeyDefinition) {
   fireEvent.pointerUp(svg, { clientX: key.x, clientY: key.y, pointerId: 1 });
 }
 
+function flickKey(svg: SVGSVGElement, key: KeyDefinition) {
+  fireEvent.pointerDown(svg, { clientX: key.x, clientY: key.y, pointerId: 1 });
+  // Displacement of 15px triggers the flick threshold (>= 11px)
+  fireEvent.pointerMove(svg, { clientX: key.x + 15, clientY: key.y - 15, pointerId: 1 });
+  fireEvent.pointerUp(svg, { clientX: key.x + 15, clientY: key.y - 15, pointerId: 1 });
+}
+
 describe('App Root Workbench & Keyboard Interactions', () => {
   it('renders title, metrics panel, and virtual keyboard canvas', () => {
     render(<App />);
@@ -62,82 +69,72 @@ describe('App Root Workbench & Keyboard Interactions', () => {
     expect(screen.getByText('Aa')).toBeDefined();
   });
 
-  it('resolves phonotactic shared keys: J·H defaults to j, but after c produces h', () => {
+  it('supports Option C dual buttons: Tap emits primary letter, Flick emits secondary letter', () => {
     render(<App />);
     const svg = screen.getByTestId('virtual-keyboard-canvas') as unknown as SVGSVGElement;
 
-    const keyC = radialSingleThumbLayout.keys.find(k => k.char === 'c')!;
-    const keyJH = radialSingleThumbLayout.keys.find(k => k.id === 'k_jh')!;
+    const keyEJ = radialSingleThumbLayout.keys.find(k => k.id === 'k_ej')!;
+    const keyAK = radialSingleThumbLayout.keys.find(k => k.id === 'k_ak')!;
 
-    // Case 1: isolated tap -> 'j'
-    tapKey(svg, keyJH);
-    expect(screen.getByText('j')).toBeDefined();
+    // Tap on E·J produces 'e'
+    tapKey(svg, keyEJ);
+    expect(screen.getByText('e')).toBeDefined();
 
-    // Clear and test after 'c'
-    const clearBtn = screen.getByTitle('Borrar todo');
-    fireEvent.click(clearBtn);
+    // Flick on E·J produces 'j'
+    flickKey(svg, keyEJ);
+    expect(screen.getByText('ej')).toBeDefined();
 
-    tapKey(svg, keyC);
-    tapKey(svg, keyJH);
-    expect(screen.getByText('ch')).toBeDefined();
+    // Tap on A·K produces 'a'
+    tapKey(svg, keyAK);
+    expect(screen.getByText('eja')).toBeDefined();
+
+    // Flick on A·K produces 'k'
+    flickKey(svg, keyAK);
+    expect(screen.getByText('ejak')).toBeDefined();
   });
 
-  it('resolves phonotactic shared keys: Z·X after e produces x', () => {
+  it('inserts Tab character with Flick gesture on Shift key', () => {
     render(<App />);
     const svg = screen.getByTestId('virtual-keyboard-canvas') as unknown as SVGSVGElement;
 
-    const keyE = radialSingleThumbLayout.keys.find(k => k.char === 'e')!;
-    const keyZX = radialSingleThumbLayout.keys.find(k => k.id === 'k_zx')!;
-
-    tapKey(svg, keyE);
-    tapKey(svg, keyZX);
-    expect(screen.getByText('ex')).toBeDefined();
-  });
-
-  it('toggles shared key to alternate on double tap within timeout', () => {
-    render(<App />);
-    const svg = screen.getByTestId('virtual-keyboard-canvas') as unknown as SVGSVGElement;
-
-    const keyKW = radialSingleThumbLayout.keys.find(k => k.id === 'k_kw')!;
-
-    // 1st tap produces 'k'
-    tapKey(svg, keyKW);
-    expect(screen.getByText('k')).toBeDefined();
-
-    // Immediate 2nd tap toggles 'k' to 'w'
-    tapKey(svg, keyKW);
-    expect(screen.getByText('w')).toBeDefined();
-  });
-
-  it('inserts Tab character with Tab key', () => {
-    render(<App />);
-    const svg = screen.getByTestId('virtual-keyboard-canvas') as unknown as SVGSVGElement;
-
-    const keyTab = radialSingleThumbLayout.keys.find(k => k.char === '\t')!;
-    tapKey(svg, keyTab);
+    const keyShift = radialSingleThumbLayout.keys.find(k => k.id === 'k_shift')!;
+    flickKey(svg, keyShift);
 
     expect(screen.getByText(/1 caracteres/i)).toBeDefined();
   });
 
-  it('renders 4 tuning sliders, displays values, and allows real-time adjustment', () => {
+  it('supports Numbers Arc: Tap emits digit, Flick emits symbol', () => {
     render(<App />);
+    const svg = screen.getByTestId('virtual-keyboard-canvas') as unknown as SVGSVGElement;
 
-    expect(screen.getByText(/Ajuste Biomecánico en Vivo/i)).toBeDefined();
-    expect(screen.getByText(/1. Posición X \(Pivote\):/i)).toBeDefined();
-    expect(screen.getByText(/2. Posición Y \(Pivote\):/i)).toBeDefined();
-    expect(screen.getByText(/3. Escala de Arcos:/i)).toBeDefined();
-    expect(screen.getByText(/4. Tamaño de Teclas:/i)).toBeDefined();
+    const key1 = radialSingleThumbLayout.keys.find(k => k.id === 'k_1')!;
 
-    // Initial values displayed
-    expect(screen.getByText(/332 px/i)).toBeDefined();
-    expect(screen.getByText(/325 px/i)).toBeDefined();
-    expect(screen.getByText(/Copiar Valores/i)).toBeDefined();
+    // Tap produces digit '1'
+    tapKey(svg, key1);
 
-    // Adjusting a slider updates the readout
-    const sliders = screen.getAllByRole('slider');
-    expect(sliders.length).toBe(4);
+    // Flick produces symbol '!'
+    flickKey(svg, key1);
+    expect(screen.getByText('1!')).toBeDefined();
+  });
 
-    fireEvent.change(sliders[0], { target: { value: '345' } });
-    expect(screen.getByText(/345 px/i)).toBeDefined();
+  it('navigates cursor by scrubbing across spacebar without typing a space', () => {
+    render(<App />);
+    const svg = screen.getByTestId('virtual-keyboard-canvas') as unknown as SVGSVGElement;
+
+    const keyE = radialSingleThumbLayout.keys.find(k => k.char === 'e')!;
+    const keySpace = radialSingleThumbLayout.keys.find(k => k.type === 'space')!;
+
+    tapKey(svg, keyE);
+    tapKey(svg, keyE);
+    expect(screen.getByText('ee')).toBeDefined();
+
+    // Scrub across spacebar
+    fireEvent.pointerDown(svg, { clientX: keySpace.x, clientY: keySpace.y, pointerId: 1 });
+    fireEvent.pointerMove(svg, { clientX: keySpace.x + 35, clientY: keySpace.y, pointerId: 1 });
+    fireEvent.pointerUp(svg, { clientX: keySpace.x + 35, clientY: keySpace.y, pointerId: 1 });
+
+    // Text should still be 'ee' with 2 chars (no extra space character inserted because scrubbing occurred)
+    expect(screen.getByText('ee')).toBeDefined();
+    expect(screen.getByText(/2 caracteres/i)).toBeDefined();
   });
 });
