@@ -1,13 +1,13 @@
 import type { LayoutDefinition, KeyDefinition } from '../types';
 
 /**
- * Función que genera una fila de teclas siguiendo el arco de barrido fisiológico del pulgar.
- * Comienza desde el extremo izquierdo de la pantalla (xStart) hasta el borde derecho (xEnd).
+ * Genera una fila de teclas distribuidas a lo largo de un arco parabólico/polar
+ * correspondiente al alcance ergonómico natural del pulgar (ni muy lejos ni muy cerca de la articulación).
  */
-function createSweptRow(
-  yBase: number,
-  xStart: number,
-  xEnd: number,
+function createCrescentRow(
+  startPt: { x: number; y: number },
+  midPt: { x: number; y: number },
+  endPt: { x: number; y: number },
   items: Array<{
     id: string;
     char: string;
@@ -15,17 +15,15 @@ function createSweptRow(
     type?: KeyDefinition['type'];
     secondaryChar?: string;
     radius?: number;
-  }>,
-  curvature: number = 38
+  }>
 ): KeyDefinition[] {
   const count = items.length;
-  const step = (xEnd - xStart) / (count - 1);
 
   return items.map((item, index) => {
-    const x = Math.round(xStart + index * step);
-    // Curvatura convexa suave adaptada al pulgar derecho (abducción máxima en el extremo izquierdo)
-    const norm = (x - 210) / 160;
-    const y = Math.round(yBase + Math.pow(norm, 2) * curvature);
+    const t = index / (count - 1);
+    // Interpolación cuadrática que reproduce la curvatura del arco del pulgar
+    const x = Math.round((1 - t) * (1 - t) * startPt.x + 2 * (1 - t) * t * midPt.x + t * t * endPt.x);
+    const y = Math.round((1 - t) * (1 - t) * startPt.y + 2 * (1 - t) * t * midPt.y + t * t * endPt.y);
 
     return {
       id: item.id,
@@ -34,18 +32,19 @@ function createSweptRow(
       type: item.type ?? 'letter',
       x,
       y,
-      radius: item.radius ?? 15.5,
+      radius: item.radius ?? 15,
       secondaryChar: item.secondaryChar,
       handAssigned: 'right' as const
     };
   });
 }
 
-// 1. Fila de Números (Extremo izquierdo a derecho: 1, 2, 3, 4, 5, 6, 7, 8, 9, 0)
-const numbersRow = createSweptRow(
-  36,
-  24,
-  336,
+// 1. Arco 0 (Exterior - Números directos 1 al 0):
+// Inicia en el extremo izquierdo (x=25, y=165), se eleva suavemente hacia el centro y baja a la derecha
+const numbersRow = createCrescentRow(
+  { x: 25, y: 165 },
+  { x: 185, y: 85 },
+  { x: 340, y: 115 },
   [
     { id: 'k_1', char: '1', display: '1', type: 'number' },
     { id: 'k_2', char: '2', display: '2', type: 'number' },
@@ -57,15 +56,15 @@ const numbersRow = createSweptRow(
     { id: 'k_8', char: '8', display: '8', type: 'number' },
     { id: 'k_9', char: '9', display: '9', type: 'number' },
     { id: 'k_0', char: '0', display: '0', type: 'number' },
-  ],
-  42
+  ]
 );
 
-// 2. Fila Superior: Consonantes y periféricas
-const upperRow = createSweptRow(
-  92,
-  24,
-  336,
+// 2. Arco 1 (Consonantes superiores e infrecuentes):
+// Paralelo al arco 0, nace en el borde izquierdo (x=25, y=205)
+const upperRow = createCrescentRow(
+  { x: 25, y: 205 },
+  { x: 185, y: 125 },
+  { x: 340, y: 155 },
   [
     { id: 'k_q', char: 'q', display: 'Q', secondaryChar: '@' },
     { id: 'k_w', char: 'w', display: 'W', secondaryChar: '#' },
@@ -77,16 +76,15 @@ const upperRow = createSweptRow(
     { id: 'k_j', char: 'j', display: 'J', secondaryChar: ')' },
     { id: 'k_z', char: 'z', display: 'Z', secondaryChar: '-' },
     { id: 'k_x', char: 'x', display: 'X', secondaryChar: '_' },
-  ],
-  40
+  ]
 );
 
-// 3. Fila Dorada (Sweet Spot de Máxima Frecuencia del Español: D, L, C, R, E, A, O, S, T, N)
-// Más del 72% de los caracteres en español se encuentran en este arco
-const goldenRow = createSweptRow(
-  148,
-  26,
-  334,
+// 3. Arco 2 (Arco Dorado - Máxima Frecuencia del Español: D, L, C, R, E, A, O, S, T, N):
+// Ubicado exactamente en la franja de mínimo torque y fatiga muscular
+const goldenRow = createCrescentRow(
+  { x: 35, y: 245 },
+  { x: 190, y: 165 },
+  { x: 340, y: 195 },
   [
     { id: 'k_d', char: 'd', display: 'D', secondaryChar: '«' },
     { id: 'k_l', char: 'l', display: 'L', secondaryChar: '»' },
@@ -98,15 +96,14 @@ const goldenRow = createSweptRow(
     { id: 'k_s', char: 's', display: 'S' },
     { id: 'k_t', char: 't', display: 'T' },
     { id: 'k_n', char: 'n', display: 'N' },
-  ],
-  38
+  ]
 );
 
-// 4. Fila Media: Vocales complementarias, M, P, Y, K, Ñ y Botón de Tilde Dedicado (´)
-const midRow = createSweptRow(
-  204,
-  28,
-  332,
+// 4. Arco 3 (Frecuencia Media + Ñ + Tecla de Tilde Dedicada ´):
+const midRow = createCrescentRow(
+  { x: 65, y: 280 },
+  { x: 200, y: 205 },
+  { x: 335, y: 235 },
   [
     { id: 'k_m', char: 'm', display: 'M', secondaryChar: ';' },
     { id: 'k_p', char: 'p', display: 'P', secondaryChar: ':' },
@@ -115,30 +112,30 @@ const midRow = createSweptRow(
     { id: 'k_y', char: 'y', display: 'Y', secondaryChar: '/' },
     { id: 'k_k', char: 'k', display: 'K', secondaryChar: '=' },
     { id: 'k_ene', char: 'ñ', display: 'Ñ', secondaryChar: '+' },
-    { id: 'k_tilde', char: '´', display: '´', type: 'action', radius: 17, secondaryChar: '¨' },
+    { id: 'k_tilde', char: '´', display: '´', type: 'action', radius: 16, secondaryChar: '¨' },
     { id: 'k_quest', char: '¿', display: '¿?', type: 'punctuation', secondaryChar: '?' },
-  ],
-  34
+  ]
 );
 
-// 5. Fila Inferior: Puntuación, Barra de Espacio con Scrubbing y Acciones
+// 5. Zona de Descanso y Control del Pulgar (Espacio Central con Scrubbing + Borrado + Puntuación):
+// Situada en la zona neutra de reposo, sin invadir la articulación en la esquina inferior derecha
 const controlKeys: KeyDefinition[] = [
-  { id: 'k_comma', char: ',', display: ',', type: 'punctuation', x: 30, y: 280, radius: 16 },
-  { id: 'k_dot', char: '.', display: '.', type: 'punctuation', x: 70, y: 278, radius: 16 },
-  { id: 'k_space', char: ' ', display: 'ESPACIO ⟷', type: 'space', x: 175, y: 278, radius: 26 },
-  { id: 'k_backspace', char: '\b', display: '⌫', type: 'action', x: 278, y: 278, radius: 18 },
-  { id: 'k_enter', char: '\n', display: '↵', type: 'action', x: 326, y: 280, radius: 18 },
+  { id: 'k_comma', char: ',', display: ',', type: 'punctuation', x: 45, y: 298, radius: 15 },
+  { id: 'k_dot', char: '.', display: '.', type: 'punctuation', x: 82, y: 295, radius: 15 },
+  { id: 'k_space', char: ' ', display: 'ESPACIO ⟷', type: 'space', x: 175, y: 290, radius: 24 },
+  { id: 'k_backspace', char: '\b', display: '⌫', type: 'action', x: 268, y: 292, radius: 17 },
+  { id: 'k_enter', char: '\n', display: '↵', type: 'action', x: 312, y: 295, radius: 17 },
 ];
 
 export const radialSingleThumbLayout: LayoutDefinition = {
   id: 'radial-single-thumb-right',
   name: 'Polar Ergonómico Monomanual (Diestro)',
-  description: 'Arco continuo desde el extremo izquierdo de la pantalla hasta el descanso del pulgar. Incluye fila de números directa, botón dedicado de tilde (´) y control de cursor por gestos.',
+  description: 'Arco polar continuo diseñado en la franja de confort del pulgar (sin forzar cerca de la articulación ni lejos hacia arriba). Comienza en el extremo izquierdo e incluye números directos y botón de tilde.',
   mode: 'single-thumb-right',
   width: 360,
-  height: 320,
+  height: 330,
   pivotPoints: {
-    right: { x: 360, y: 320 }
+    right: { x: 360, y: 340 }
   },
   keys: [
     ...numbersRow,
@@ -152,12 +149,12 @@ export const radialSingleThumbLayout: LayoutDefinition = {
 export const radialSingleThumbLeftLayout: LayoutDefinition = {
   id: 'radial-single-thumb-left',
   name: 'Polar Ergonómico Monomanual (Zurdo)',
-  description: 'Layout radial simétrico optimizado para pulgar izquierdo. Comienza desde el extremo derecho hacia la base izquierda.',
+  description: 'Arco polar simétrico optimizado para pulgar izquierdo. Nace desde el extremo derecho hacia el descanso del pulgar izquierdo.',
   mode: 'single-thumb-left',
   width: 360,
-  height: 320,
+  height: 330,
   pivotPoints: {
-    left: { x: 0, y: 320 }
+    left: { x: 0, y: 340 }
   },
   keys: radialSingleThumbLayout.keys.map(k => ({
     ...k,

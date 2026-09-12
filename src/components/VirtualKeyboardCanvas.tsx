@@ -192,11 +192,24 @@ export const VirtualKeyboardCanvas: React.FC<VirtualKeyboardCanvasProps> = ({
         <rect width={layout.width} height={layout.height} rx="16" fill="#070b13" />
 
         {/* 1. Arcos Biomecánicos Guía */}
-        {showBiomechanicArcs && layout.pivotPoints.right && (
-          <g className="pointer-events-none opacity-25">
-            <circle cx={layout.pivotPoints.right.x} cy={layout.pivotPoints.right.y} r="215" fill="none" stroke="#10b981" strokeWidth="1.5" />
-            <circle cx={layout.pivotPoints.right.x} cy={layout.pivotPoints.right.y} r="275" fill="none" stroke="#06b6d4" strokeDasharray="3 3" strokeWidth="1" />
-            <circle cx={layout.pivotPoints.right.x} cy={layout.pivotPoints.right.y} r="335" fill="none" stroke="#64748b" strokeDasharray="4 4" strokeWidth="1" />
+        {showBiomechanicArcs && (
+          <g className="pointer-events-none opacity-30">
+            {layout.mode === 'single-thumb-right' && (
+              <>
+                <path d="M 25 165 Q 185 85 340 115" fill="none" stroke="#64748b" strokeDasharray="3 3" strokeWidth="1" />
+                <path d="M 25 205 Q 185 125 340 155" fill="none" stroke="#06b6d4" strokeDasharray="3 3" strokeWidth="1" />
+                <path d="M 35 245 Q 190 165 340 195" fill="none" stroke="#10b981" strokeWidth="1.5" />
+                <path d="M 65 280 Q 200 205 335 235" fill="none" stroke="#06b6d4" strokeDasharray="3 3" strokeWidth="1" />
+              </>
+            )}
+            {layout.mode === 'single-thumb-left' && (
+              <>
+                <path d="M 335 165 Q 175 85 20 115" fill="none" stroke="#64748b" strokeDasharray="3 3" strokeWidth="1" />
+                <path d="M 335 205 Q 175 125 20 155" fill="none" stroke="#06b6d4" strokeDasharray="3 3" strokeWidth="1" />
+                <path d="M 325 245 Q 170 165 20 195" fill="none" stroke="#10b981" strokeWidth="1.5" />
+                <path d="M 295 280 Q 160 205 25 235" fill="none" stroke="#06b6d4" strokeDasharray="3 3" strokeWidth="1" />
+              </>
+            )}
           </g>
         )}
 
