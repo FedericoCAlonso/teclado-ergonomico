@@ -6,6 +6,7 @@ import {
 } from './bayesianDecoder';
 import type { TouchStroke } from './bayesianDecoder';
 import { radialSingleThumbLayout } from '../layouts/radialSingleThumbLayout';
+import { bimanualSplitLayout } from '../layouts/bimanualSplitLayout';
 
 describe('Bayesian Touch Decoder', () => {
   it('classifies quick tap with minimal displacement as tap', () => {
@@ -35,23 +36,22 @@ describe('Bayesian Touch Decoder', () => {
     expect(result.confidence).toBeGreaterThan(0.5);
   });
 
-  it('resolves flick_up/flick_outward on vowel E to accented é', () => {
-    const keyE = radialSingleThumbLayout.keys.find(k => k.char === 'e')!;
-    // Drag upwards / outward away from pivot (360, 320)
+  it('resolves flick_up/flick_outward on vowel E to accented é when layout defines accentChar', () => {
+    const keyE = bimanualSplitLayout.keys.find(k => k.char === 'e')!;
     const stroke: TouchStroke = {
       startX: keyE.x,
       startY: keyE.y,
-      endX: keyE.x - 25,
+      endX: keyE.x,
       endY: keyE.y - 25
     };
 
-    const result = decodeTouchStroke(stroke, radialSingleThumbLayout, '');
+    const result = decodeTouchStroke(stroke, bimanualSplitLayout, '');
     expect(result.primaryKey.char).toBe('e');
     expect(result.char).toBe('é');
   });
 
-  it('resolves flick_down on key to its secondary character (number or symbol)', () => {
-    const keyE = radialSingleThumbLayout.keys.find(k => k.char === 'e')!;
+  it('resolves flick_down on key to its secondary character when layout defines secondaryChar', () => {
+    const keyE = bimanualSplitLayout.keys.find(k => k.char === 'e')!;
     const stroke: TouchStroke = {
       startX: keyE.x,
       startY: keyE.y,
@@ -59,9 +59,9 @@ describe('Bayesian Touch Decoder', () => {
       endY: keyE.y + 25
     };
 
-    const result = decodeTouchStroke(stroke, radialSingleThumbLayout, '');
+    const result = decodeTouchStroke(stroke, bimanualSplitLayout, '');
     expect(result.primaryKey.char).toBe('e');
-    expect(result.char).toBe('6'); // Secondary char of E in layout
+    expect(result.char).toBe('6'); // Secondary char of E in bimanualSplitLayout
   });
 
   it('uses linguistic context to resolve ambiguous touch between two neighboring keys', () => {

@@ -24,6 +24,11 @@ describe('Ergonomic Keyboard Layouts', () => {
     expect(chars.has(' ')).toBe(true);
     expect(chars.has('\b')).toBe(true);
     expect(chars.has('\n')).toBe(true);
+    expect(chars.has('´')).toBe(true); // Dedicated dead-key tilde
+    // All digits 0-9
+    for (let d = 0; d <= 9; d++) {
+      expect(chars.has(d.toString()), `Missing digit ${d} in radial layout`).toBe(true);
+    }
   });
 
   it('ensures bimanualSplitLayout contains all letters and assigned hands', () => {

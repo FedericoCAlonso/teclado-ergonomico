@@ -1,101 +1,139 @@
 import type { LayoutDefinition, KeyDefinition } from '../types';
 
 /**
- * Helper para proyectar una tecla en coordenadas cartesianas a partir de coordenadas polares (r, thetaDeg)
- * ancladas al pivote del pulgar derecho (360, 320).
+ * Función que genera una fila de teclas siguiendo el arco de barrido fisiológico del pulgar.
+ * Comienza desde el extremo izquierdo de la pantalla (xStart) hasta el borde derecho (xEnd).
  */
-function createPolarKey(
-  id: string,
-  char: string,
-  display: string,
-  r: number,
-  thetaDeg: number,
-  options: {
+function createSweptRow(
+  yBase: number,
+  xStart: number,
+  xEnd: number,
+  items: Array<{
+    id: string;
+    char: string;
+    display: string;
     type?: KeyDefinition['type'];
     secondaryChar?: string;
-    accentChar?: string;
     radius?: number;
-  } = {}
-): KeyDefinition {
-  const pivotX = 360;
-  const pivotY = 320;
-  const thetaRad = (thetaDeg * Math.PI) / 180;
-  const x = Math.round(pivotX + r * Math.cos(thetaRad));
-  const y = Math.round(pivotY + r * Math.sin(thetaRad));
+  }>,
+  curvature: number = 38
+): KeyDefinition[] {
+  const count = items.length;
+  const step = (xEnd - xStart) / (count - 1);
 
-  return {
-    id,
-    char,
-    display,
-    type: options.type ?? 'letter',
-    x,
-    y,
-    radius: options.radius ?? 20,
-    secondaryChar: options.secondaryChar,
-    accentChar: options.accentChar,
-    handAssigned: 'right'
-  };
+  return items.map((item, index) => {
+    const x = Math.round(xStart + index * step);
+    // Curvatura convexa suave adaptada al pulgar derecho (abducción máxima en el extremo izquierdo)
+    const norm = (x - 210) / 160;
+    const y = Math.round(yBase + Math.pow(norm, 2) * curvature);
+
+    return {
+      id: item.id,
+      char: item.char,
+      display: item.display,
+      type: item.type ?? 'letter',
+      x,
+      y,
+      radius: item.radius ?? 15.5,
+      secondaryChar: item.secondaryChar,
+      handAssigned: 'right' as const
+    };
+  });
 }
 
-// 1. Arco Central de Oro (Sweet Spot: r = 215 px, mínimo torque y fatiga)
-// Alberga las letras más frecuentes del español: E, A, O, S, R, N, I, D, L, C, T
-const goldenArc: KeyDefinition[] = [
-  createPolarKey('k_c', 'c', 'C', 215, -164, { secondaryChar: '3' }),
-  createPolarKey('k_d', 'd', 'D', 215, -153, { secondaryChar: '4' }),
-  createPolarKey('k_r', 'r', 'R', 215, -142, { secondaryChar: '5' }),
-  createPolarKey('k_e', 'e', 'E', 215, -131, { secondaryChar: '6', accentChar: 'é' }),
-  createPolarKey('k_a', 'a', 'A', 215, -120, { secondaryChar: '7', accentChar: 'á' }),
-  createPolarKey('k_o', 'o', 'O', 215, -109, { secondaryChar: '8', accentChar: 'ó' }),
-  createPolarKey('k_s', 's', 'S', 215, -98, { secondaryChar: '9' }),
-];
+// 1. Fila de Números (Extremo izquierdo a derecho: 1, 2, 3, 4, 5, 6, 7, 8, 9, 0)
+const numbersRow = createSweptRow(
+  36,
+  24,
+  336,
+  [
+    { id: 'k_1', char: '1', display: '1', type: 'number' },
+    { id: 'k_2', char: '2', display: '2', type: 'number' },
+    { id: 'k_3', char: '3', display: '3', type: 'number' },
+    { id: 'k_4', char: '4', display: '4', type: 'number' },
+    { id: 'k_5', char: '5', display: '5', type: 'number' },
+    { id: 'k_6', char: '6', display: '6', type: 'number' },
+    { id: 'k_7', char: '7', display: '7', type: 'number' },
+    { id: 'k_8', char: '8', display: '8', type: 'number' },
+    { id: 'k_9', char: '9', display: '9', type: 'number' },
+    { id: 'k_0', char: '0', display: '0', type: 'number' },
+  ],
+  42
+);
 
-// 2. Arco Medio Confort (r = 165 px, flexión moderada cómoda)
-// Letras de frecuencia media-alta: N, I, T, L, U, M, P, Ñ
-const midArc: KeyDefinition[] = [
-  createPolarKey('k_p', 'p', 'P', 165, -166, { secondaryChar: '0' }),
-  createPolarKey('k_m', 'm', 'M', 165, -153, { secondaryChar: '?' }),
-  createPolarKey('k_t', 't', 'T', 165, -140, { secondaryChar: '!' }),
-  createPolarKey('k_i', 'i', 'I', 165, -127, { secondaryChar: '1', accentChar: 'í' }),
-  createPolarKey('k_n', 'n', 'N', 165, -114, { secondaryChar: '2' }),
-  createPolarKey('k_l', 'l', 'L', 165, -101, { secondaryChar: ':' }),
-  createPolarKey('k_ene', 'ñ', 'Ñ', 165, -88, { secondaryChar: ';' }),
-];
+// 2. Fila Superior: Consonantes y periféricas
+const upperRow = createSweptRow(
+  92,
+  24,
+  336,
+  [
+    { id: 'k_q', char: 'q', display: 'Q', secondaryChar: '@' },
+    { id: 'k_w', char: 'w', display: 'W', secondaryChar: '#' },
+    { id: 'k_f', char: 'f', display: 'F', secondaryChar: '$' },
+    { id: 'k_g', char: 'g', display: 'G', secondaryChar: '%' },
+    { id: 'k_b', char: 'b', display: 'B', secondaryChar: '&' },
+    { id: 'k_v', char: 'v', display: 'V', secondaryChar: '*' },
+    { id: 'k_h', char: 'h', display: 'H', secondaryChar: '(' },
+    { id: 'k_j', char: 'j', display: 'J', secondaryChar: ')' },
+    { id: 'k_z', char: 'z', display: 'Z', secondaryChar: '-' },
+    { id: 'k_x', char: 'x', display: 'X', secondaryChar: '_' },
+  ],
+  40
+);
 
-// 3. Arco Exterior Superior (r = 265 px, extensión del pulgar)
-// Letras de frecuencia baja: B, G, V, Y, Q, H, F, Z, J, X, K, W
-const outerArc: KeyDefinition[] = [
-  createPolarKey('k_q', 'q', 'Q', 265, -164, { secondaryChar: '@' }),
-  createPolarKey('k_b', 'b', 'B', 265, -154, { secondaryChar: '#' }),
-  createPolarKey('k_g', 'g', 'G', 265, -144, { secondaryChar: '$' }),
-  createPolarKey('k_u', 'u', 'U', 265, -134, { secondaryChar: '%', accentChar: 'ú' }),
-  createPolarKey('k_v', 'v', 'V', 265, -124, { secondaryChar: '&' }),
-  createPolarKey('k_y', 'y', 'Y', 265, -114, { secondaryChar: '*' }),
-  createPolarKey('k_h', 'h', 'H', 265, -104, { secondaryChar: '(' }),
-  createPolarKey('k_f', 'f', 'F', 265, -94, { secondaryChar: ')' }),
-];
+// 3. Fila Dorada (Sweet Spot de Máxima Frecuencia del Español: D, L, C, R, E, A, O, S, T, N)
+// Más del 72% de los caracteres en español se encuentran en este arco
+const goldenRow = createSweptRow(
+  148,
+  26,
+  334,
+  [
+    { id: 'k_d', char: 'd', display: 'D', secondaryChar: '«' },
+    { id: 'k_l', char: 'l', display: 'L', secondaryChar: '»' },
+    { id: 'k_c', char: 'c', display: 'C', secondaryChar: '<' },
+    { id: 'k_r', char: 'r', display: 'R', secondaryChar: '>' },
+    { id: 'k_e', char: 'e', display: 'E' },
+    { id: 'k_a', char: 'a', display: 'A' },
+    { id: 'k_o', char: 'o', display: 'O' },
+    { id: 'k_s', char: 's', display: 'S' },
+    { id: 'k_t', char: 't', display: 'T' },
+    { id: 'k_n', char: 'n', display: 'N' },
+  ],
+  38
+);
 
-// 4. Arco Periférico Superior (r = 305 px, teclas raras)
-const peripheralKeys: KeyDefinition[] = [
-  createPolarKey('k_z', 'z', 'Z', 305, -155, { secondaryChar: '_' }),
-  createPolarKey('k_j', 'j', 'J', 305, -140, { secondaryChar: '-' }),
-  createPolarKey('k_x', 'x', 'X', 305, -125, { secondaryChar: '+' }),
-  createPolarKey('k_k', 'k', 'K', 305, -110, { secondaryChar: '=' }),
-  createPolarKey('k_w', 'w', 'W', 305, -95, { secondaryChar: '/' }),
-];
+// 4. Fila Media: Vocales complementarias, M, P, Y, K, Ñ y Botón de Tilde Dedicado (´)
+const midRow = createSweptRow(
+  204,
+  28,
+  332,
+  [
+    { id: 'k_m', char: 'm', display: 'M', secondaryChar: ';' },
+    { id: 'k_p', char: 'p', display: 'P', secondaryChar: ':' },
+    { id: 'k_u', char: 'u', display: 'U' },
+    { id: 'k_i', char: 'i', display: 'I' },
+    { id: 'k_y', char: 'y', display: 'Y', secondaryChar: '/' },
+    { id: 'k_k', char: 'k', display: 'K', secondaryChar: '=' },
+    { id: 'k_ene', char: 'ñ', display: 'Ñ', secondaryChar: '+' },
+    { id: 'k_tilde', char: '´', display: '´', type: 'action', radius: 17, secondaryChar: '¨' },
+    { id: 'k_quest', char: '¿', display: '¿?', type: 'punctuation', secondaryChar: '?' },
+  ],
+  34
+);
 
-// 5. Zona de Descanso y Teclas de Control Funcional (r = 110 px a 125 px, adyacente al pulgar)
+// 5. Fila Inferior: Puntuación, Barra de Espacio con Scrubbing y Acciones
 const controlKeys: KeyDefinition[] = [
-  createPolarKey('k_comma', ',', ',', 115, -165, { type: 'punctuation', secondaryChar: '¿' }),
-  createPolarKey('k_dot', '.', '.', 115, -145, { type: 'punctuation', secondaryChar: '¡' }),
-  createPolarKey('k_space', ' ', 'ESPACIO', 115, -120, { type: 'space', radius: 28 }),
-  createPolarKey('k_backspace', '\b', '⌫', 115, -95, { type: 'action', radius: 22 }),
-  createPolarKey('k_enter', '\n', '↵', 115, -75, { type: 'action', radius: 22 }),
+  { id: 'k_comma', char: ',', display: ',', type: 'punctuation', x: 30, y: 280, radius: 16 },
+  { id: 'k_dot', char: '.', display: '.', type: 'punctuation', x: 70, y: 278, radius: 16 },
+  { id: 'k_space', char: ' ', display: 'ESPACIO ⟷', type: 'space', x: 175, y: 278, radius: 26 },
+  { id: 'k_backspace', char: '\b', display: '⌫', type: 'action', x: 278, y: 278, radius: 18 },
+  { id: 'k_enter', char: '\n', display: '↵', type: 'action', x: 326, y: 280, radius: 18 },
 ];
 
 export const radialSingleThumbLayout: LayoutDefinition = {
   id: 'radial-single-thumb-right',
   name: 'Polar Ergonómico Monomanual (Diestro)',
-  description: 'Layout radial optimizado para pulgar derecho. Letras clave del español en el arco de mínimo torque (r = 215px), Ñ nativa y tildes por flick.',
+  description: 'Arco continuo desde el extremo izquierdo de la pantalla hasta el descanso del pulgar. Incluye fila de números directa, botón dedicado de tilde (´) y control de cursor por gestos.',
   mode: 'single-thumb-right',
   width: 360,
   height: 320,
@@ -103,10 +141,10 @@ export const radialSingleThumbLayout: LayoutDefinition = {
     right: { x: 360, y: 320 }
   },
   keys: [
-    ...goldenArc,
-    ...midArc,
-    ...outerArc,
-    ...peripheralKeys,
+    ...numbersRow,
+    ...upperRow,
+    ...goldenRow,
+    ...midRow,
     ...controlKeys
   ]
 };
@@ -114,7 +152,7 @@ export const radialSingleThumbLayout: LayoutDefinition = {
 export const radialSingleThumbLeftLayout: LayoutDefinition = {
   id: 'radial-single-thumb-left',
   name: 'Polar Ergonómico Monomanual (Zurdo)',
-  description: 'Layout radial simétrico optimizado para pulgar izquierdo. Pivote en la esquina inferior izquierda (0, 320).',
+  description: 'Layout radial simétrico optimizado para pulgar izquierdo. Comienza desde el extremo derecho hacia la base izquierda.',
   mode: 'single-thumb-left',
   width: 360,
   height: 320,
@@ -128,4 +166,3 @@ export const radialSingleThumbLeftLayout: LayoutDefinition = {
     handAssigned: 'left' as const
   }))
 };
-
