@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import type { LayoutDefinition, KeyDefinition, ShiftMode } from './types';
+import type { LayoutDefinition, KeyDefinition, ShiftMode, ModifierMode, KeyboardLayer } from './types';
 import type { Point2D } from './biomechanics/polarModel';
 import {
   radialSingleThumbLayout,
@@ -26,6 +26,10 @@ const ACCENTED_VOWELS: Record<string, string> = {
 export const App: React.FC = () => {
   const [currentLayout, setCurrentLayout] = useState<LayoutDefinition>(radialSingleThumbLayout);
   const [letterMapping, setLetterMapping] = useState<RadialLetterMapping>('phonotactic');
+  const [currentLayer, setCurrentLayer] = useState<KeyboardLayer>('abc');
+  const [ctrlState, setCtrlState] = useState<ModifierMode>('none');
+  const [altState, setAltState] = useState<ModifierMode>('none');
+  const [history, setHistory] = useState<string[]>([]);
   const [inputText, setInputText] = useState<string>('');
   const [cursorPos, setCursorPos] = useState<number>(0);
   const [accentPending, setAccentPending] = useState<boolean>(false);
@@ -39,13 +43,13 @@ export const App: React.FC = () => {
 
   const activeLayout = useMemo(() => {
     if (currentLayout.mode === 'single-thumb-right') {
-      return createRadialSingleThumbLayout(DEFAULT_RADIAL_TUNING, false, letterMapping);
+      return createRadialSingleThumbLayout(DEFAULT_RADIAL_TUNING, false, letterMapping, currentLayer);
     }
     if (currentLayout.mode === 'single-thumb-left') {
-      return createRadialSingleThumbLayout(DEFAULT_RADIAL_TUNING, true, letterMapping);
+      return createRadialSingleThumbLayout(DEFAULT_RADIAL_TUNING, true, letterMapping, currentLayer);
     }
     return currentLayout;
-  }, [currentLayout, letterMapping]);
+  }, [currentLayout, letterMapping, currentLayer]);
 
   const [tracker] = useState(() => new TypingTracker());
   const [metrics, setMetrics] = useState(() => tracker.getMetrics());
@@ -75,18 +79,143 @@ export const App: React.FC = () => {
     setShiftState((prev) => (prev === 'none' ? 'shift' : prev === 'shift' ? 'caps' : 'none'));
   };
 
-  // Manejador central de pulsación de teclas (Opción C: Tap vs Flick determinista)
+  const pushHistory = (text: string) => {
+    setHistory((prev) => [...prev.slice(-30), text]);
+  };
+
+  const handleUndo = () => {
+    if (history.length === 0) return;
+    const previous = history[history.length - 1];
+    setHistory((prev) => prev.slice(0, -1));
+    setInputText(previous);
+    setCursorPos((prev) => Math.min(previous.length, prev));
+    setMetrics(tracker.getMetrics(previous.length));
+  };
+
+  const handlePasteText = async () => {
+    try {
+      const clipboardText = await navigator.clipboard.readText();
+      if (!clipboardText) return;
+      pushHistory(inputText);
+      const before = inputText.slice(0, cursorPos);
+      const after = inputText.slice(cursorPos);
+      const newText = before + clipboardText + after;
+      setInputText(newText);
+      setCursorPos(cursorPos + clipboardText.length);
+      setMetrics(tracker.getMetrics(newText.length));
+    } catch {
+      // Si el navegador restringe navigator.clipboard.readText
+    }
+  };
+
+  // Manejador central de pulsación de teclas (Opción C: Tap vs Flick determinista y Capas Modernas)
   const handleKeyPress = (char: string, _keyDef: KeyDefinition, touchPoint: Point2D) => {
-    // 0. Tecla de mayúsculas (Shift / Caps)
+    // 0. Conmutación instantánea de capas (ABC / 123 / SYM)
+    if (char === 'layer_abc') {
+      setCurrentLayer('abc');
+      return;
+    }
+    if (char === 'layer_123') {
+      setCurrentLayer('123');
+      return;
+    }
+    if (char === 'layer_sym') {
+      setCurrentLayer('sym');
+      return;
+    }
+
+    // 1. Modificadores funcionales Sticky / One-shot (Ctrl y Alt)
+    if (char === 'ctrl') {
+      setCtrlState((prev) => (prev === 'none' ? 'sticky' : prev === 'sticky' ? 'locked' : 'none'));
+      return;
+    }
+    if (char === 'alt') {
+      setAltState((prev) => (prev === 'none' ? 'sticky' : prev === 'sticky' ? 'locked' : 'none'));
+      return;
+    }
+
+    // 2. Tecla Escape (Esc)
+    if (char === 'esc') {
+      setAccentPending(false);
+      setCtrlState('none');
+      setAltState('none');
+      if (shiftState === 'shift') setShiftState('none');
+      return;
+    }
+
+    // 3. Tecla Supr (Delete hacia adelante)
+    if (char === 'delete_forward') {
+      if (cursorPos < inputText.length) {
+        pushHistory(inputText);
+        const before = inputText.slice(0, cursorPos);
+        const after = inputText.slice(cursorPos + 1);
+        const newText = before + after;
+        setInputText(newText);
+        tracker.recordKeystroke(touchPoint, 'Supr');
+        setMetrics(tracker.getMetrics(newText.length));
+      }
+      return;
+    }
+
+    // 4. Atajos de acción directa: Deshacer (Undo), Copiar, Pegar
+    if (char === 'undo') {
+      handleUndo();
+      return;
+    }
+    if (char === 'copy') {
+      handleCopyText();
+      return;
+    }
+    if (char === 'paste') {
+      handlePasteText();
+      return;
+    }
+
+    // 5. Combinaciones con Ctrl activo (Ctrl+C, Ctrl+V, Ctrl+Z, Ctrl+A, Ctrl+X)
+    if (ctrlState !== 'none') {
+      const lowerChar = char.toLowerCase();
+      if (lowerChar === 'c') {
+        handleCopyText();
+        if (ctrlState === 'sticky') setCtrlState('none');
+        return;
+      }
+      if (lowerChar === 'v') {
+        handlePasteText();
+        if (ctrlState === 'sticky') setCtrlState('none');
+        return;
+      }
+      if (lowerChar === 'z') {
+        handleUndo();
+        if (ctrlState === 'sticky') setCtrlState('none');
+        return;
+      }
+      if (lowerChar === 'a') {
+        setCursorPos(inputText.length);
+        if (ctrlState === 'sticky') setCtrlState('none');
+        return;
+      }
+      if (lowerChar === 'x') {
+        handleCopyText();
+        handleClearText();
+        if (ctrlState === 'sticky') setCtrlState('none');
+        return;
+      }
+      if (ctrlState === 'sticky') {
+        setCtrlState('none');
+      }
+    }
+
+    // 6. Tecla de mayúsculas (Shift / Caps)
     if (char === 'shift') {
       handleToggleShift();
       return;
     }
 
-    // 1. Manejo del botón de tilde dedicado (´ - Dead Key)
+    // 7. Manejo del botón de tilde dedicado (´ - Dead Key)
     if (char === '´') {
       if (accentPending) {
         // Segundo toque consecutivo a ´ -> escribe el carácter ´
+        pushHistory(inputText);
         const before = inputText.slice(0, cursorPos);
         const after = inputText.slice(cursorPos);
         const newText = before + '´' + after;
@@ -102,13 +231,14 @@ export const App: React.FC = () => {
       return;
     }
 
-    // 2. Si la tilde está pendiente y se presiona otra tecla
+    // 8. Si la tilde está pendiente y se presiona otra tecla
     if (accentPending) {
       const isUpper = shiftState !== 'none';
       const targetVowel = isUpper ? char.toUpperCase() : char.toLowerCase();
       const accented = ACCENTED_VOWELS[targetVowel];
       if (accented) {
         // Vocal acentuada directamente (a -> á, e -> é, A -> Á, etc.)
+        pushHistory(inputText);
         const before = inputText.slice(0, cursorPos);
         const after = inputText.slice(cursorPos);
         const newText = before + accented + after;
@@ -121,6 +251,7 @@ export const App: React.FC = () => {
         return;
       } else {
         // No era vocal: insertar tilde suelta y continuar con el carácter presionado
+        pushHistory(inputText);
         const effectiveChar = (shiftState !== 'none' && char.length === 1 && /[a-zñ]/i.test(char)) ? char.toUpperCase() : char;
         const before = inputText.slice(0, cursorPos);
         const after = inputText.slice(cursorPos);
@@ -135,9 +266,10 @@ export const App: React.FC = () => {
       }
     }
 
-    // 3. Borrado (Backspace ⌫) en la posición actual del cursor
+    // 9. Borrado (Backspace ⌫) en la posición actual del cursor
     if (char === '\b') {
       if (cursorPos > 0) {
+        pushHistory(inputText);
         const before = inputText.slice(0, cursorPos - 1);
         const after = inputText.slice(cursorPos);
         const newText = before + after;
@@ -149,8 +281,9 @@ export const App: React.FC = () => {
       return;
     }
 
-    // 4. Salto de línea (Enter ↵)
+    // 10. Salto de línea (Enter ↵)
     if (char === '\n') {
+      pushHistory(inputText);
       const before = inputText.slice(0, cursorPos);
       const after = inputText.slice(cursorPos);
       const newText = before + '\n' + after;
@@ -161,8 +294,9 @@ export const App: React.FC = () => {
       return;
     }
 
-    // 5. Tabulador (Tab ⇥)
+    // 11. Tabulador (Tab ⇥)
     if (char === '\t') {
+      pushHistory(inputText);
       const before = inputText.slice(0, cursorPos);
       const after = inputText.slice(cursorPos);
       const newText = before + '\t' + after;
@@ -173,7 +307,8 @@ export const App: React.FC = () => {
       return;
     }
 
-    // 6. Inserción directa de carácter (Tap o Flick)
+    // 12. Inserción directa de carácter (Tap o Flick)
+    pushHistory(inputText);
     let finalChar = char;
     if (shiftState !== 'none' && finalChar.length === 1 && /[a-zñ]/i.test(finalChar)) {
       finalChar = finalChar.toUpperCase();
@@ -194,10 +329,13 @@ export const App: React.FC = () => {
   };
 
   const handleClearText = () => {
+    if (inputText) pushHistory(inputText);
     setInputText('');
     setCursorPos(0);
     setAccentPending(false);
     setShiftState('none');
+    setCtrlState('none');
+    setAltState('none');
     tracker.reset();
     setMetrics(tracker.getMetrics());
   };
@@ -216,6 +354,14 @@ export const App: React.FC = () => {
 
   const handleSelectLetterMapping = (mapping: RadialLetterMapping) => {
     setLetterMapping(mapping);
+    setCurrentLayer('abc');
+    if (currentLayout.mode !== 'single-thumb-right' && currentLayout.mode !== 'single-thumb-left') {
+      setCurrentLayout(radialSingleThumbLayout);
+    }
+  };
+
+  const handleSelectLayer = (layer: KeyboardLayer) => {
+    setCurrentLayer(layer);
     if (currentLayout.mode !== 'single-thumb-right' && currentLayout.mode !== 'single-thumb-left') {
       setCurrentLayout(radialSingleThumbLayout);
     }
@@ -363,10 +509,13 @@ export const App: React.FC = () => {
       {/* Lienzo del Teclado Táctil Interactivo */}
       <main className="w-full my-2">
         <VirtualKeyboardCanvas
-          key={`${activeLayout.id}-${letterMapping}`}
+          key={`${activeLayout.id}-${letterMapping}-${currentLayer}`}
           layout={activeLayout}
           accentPending={accentPending}
           shiftState={shiftState}
+          ctrlState={ctrlState}
+          altState={altState}
+          currentLayer={currentLayer}
           showOcclusionShadow={showOcclusionShadow}
           showBiomechanicArcs={showBiomechanicArcs}
           onKeyPress={handleKeyPress}
@@ -391,6 +540,8 @@ export const App: React.FC = () => {
           onSelectLayout={(l) => setCurrentLayout(l)}
           letterMapping={letterMapping}
           onSelectLetterMapping={handleSelectLetterMapping}
+          currentLayer={currentLayer}
+          onSelectLayer={handleSelectLayer}
           showBiomechanicArcs={showBiomechanicArcs}
           onToggleBiomechanicArcs={setShowBiomechanicArcs}
           showOcclusionShadow={showOcclusionShadow}

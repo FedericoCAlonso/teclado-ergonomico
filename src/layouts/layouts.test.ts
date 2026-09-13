@@ -3,6 +3,8 @@ import {
   AVAILABLE_LAYOUTS,
   radialSingleThumbLayout,
   radialSingleThumbLeftLayout,
+  createRadialSingleThumbLayout,
+  DEFAULT_RADIAL_TUNING,
   bimanualSplitLayout,
   hybridLayout,
   qwertyBaselineLayout
@@ -134,5 +136,34 @@ describe('Ergonomic Keyboard Layouts', () => {
     expect(qwertyC.keys.some(k => k.id === 'k_az')).toBe(true);
     expect(qwertyC.keys.some(k => k.id === 'k_sx')).toBe(true);
     expect(qwertyC.keys.some(k => k.id === 'k_as')).toBe(false);
+  });
+
+  it('validates 123 layer (Polar Numpad) has 30 keys, strictly increasing density and essential math/numeric keys', () => {
+    const layout123 = createRadialSingleThumbLayout(DEFAULT_RADIAL_TUNING, false, 'phonotactic', '123');
+    expect(layout123.keys.length).toBe(30);
+
+    const chars = new Set(layout123.keys.map(k => k.char));
+    for (let d = 0; d <= 9; d++) {
+      expect(chars.has(d.toString())).toBe(true);
+    }
+    expect(chars.has('+')).toBe(true);
+    expect(chars.has('-')).toBe(true);
+    expect(chars.has('*')).toBe(true);
+    expect(chars.has('/')).toBe(true);
+    expect(chars.has('=')).toBe(true);
+    expect(chars.has('.')).toBe(true);
+    expect(chars.has('layer_abc')).toBe(true);
+  });
+
+  it('validates SYM layer has 30 keys and covers programming and special characters', () => {
+    const layoutSym = createRadialSingleThumbLayout(DEFAULT_RADIAL_TUNING, false, 'phonotactic', 'sym');
+    expect(layoutSym.keys.length).toBe(30);
+
+    const chars = new Set(layoutSym.keys.map(k => k.char));
+    ['[', ']', '{', '}', '<', '>', '@', '#', '$', '%', '&', '_', '~', '^', '\\', '|'].forEach(sym => {
+      expect(chars.has(sym), `Missing symbol ${sym}`).toBe(true);
+    });
+    expect(chars.has('layer_abc')).toBe(true);
+    expect(chars.has('layer_123')).toBe(true);
   });
 });

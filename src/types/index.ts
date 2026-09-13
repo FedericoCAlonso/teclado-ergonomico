@@ -6,6 +6,10 @@ export type Handedness = 'right' | 'left' | 'both';
 
 export type ShiftMode = 'none' | 'shift' | 'caps';
 
+export type ModifierMode = 'none' | 'sticky' | 'locked';
+
+export type KeyboardLayer = 'abc' | '123' | 'sym';
+
 export type KeyType = 'letter' | 'number' | 'punctuation' | 'action' | 'space';
 
 export interface KeyDefinition {

@@ -7,6 +7,7 @@ import {
   type RadialTuningParams,
   type RadialLetterMapping,
   type RadialLetterMappingOption,
+  type KeyboardLayer,
   RADIAL_MAPPING_OPTIONS
 } from './radialSingleThumbLayout';
 import { bimanualSplitLayout } from './bimanualSplitLayout';
@@ -21,6 +22,7 @@ export {
   type RadialTuningParams,
   type RadialLetterMapping,
   type RadialLetterMappingOption,
+  type KeyboardLayer,
   RADIAL_MAPPING_OPTIONS,
   bimanualSplitLayout,
   hybridLayout,

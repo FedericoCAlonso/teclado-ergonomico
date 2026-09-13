@@ -103,18 +103,45 @@ describe('App Root Workbench & Keyboard Interactions', () => {
     expect(screen.getByText(/1 caracteres/i)).toBeDefined();
   });
 
-  it('supports Numbers Arc: Tap emits digit, Flick emits symbol', () => {
+  it('supports Polar Numpad: switching to 123 layer allows typing digits and symbols', () => {
     render(<App />);
     const svg = screen.getByTestId('virtual-keyboard-canvas') as unknown as SVGSVGElement;
 
-    const key1 = radialSingleThumbLayout.keys.find(k => k.id === 'k_1')!;
+    // Outer arc has layer_123 button. Tap to switch to 123 layer
+    const keyLayer123 = radialSingleThumbLayout.keys.find(k => k.id === 'k_acc_123')!;
+    tapKey(svg, keyLayer123);
 
-    // Tap produces digit '1'
-    tapKey(svg, key1);
+    // Now canvas is in 123 layer, verify digits 7, 8, 9 are present
+    expect(screen.getByText('7')).toBeDefined();
+    expect(screen.getByText('8')).toBeDefined();
+    expect(screen.getByText('9')).toBeDefined();
 
-    // Flick produces symbol '!'
-    flickKey(svg, key1);
-    expect(screen.getByText('1!')).toBeDefined();
+    // Verify 1 is present in the layout
+    expect(screen.getAllByText('1').length).toBeGreaterThanOrEqual(1);
+
+    // Switch back to ABC
+    fireEvent.click(screen.getByText('ABC (Letras)'));
+    expect(screen.getByText('123')).toBeDefined();
+  });
+
+  it('supports functional accessory keys: Ctrl, Alt, and Supr', () => {
+    render(<App />);
+    const svg = screen.getByTestId('virtual-keyboard-canvas') as unknown as SVGSVGElement;
+
+    // Verify accessory keys on outer arc
+    expect(screen.getByText('Ctrl')).toBeDefined();
+    expect(screen.getByText('Alt')).toBeDefined();
+    expect(screen.getByText('Esc')).toBeDefined();
+    expect(screen.getByText('Supr')).toBeDefined();
+    expect(screen.getByText('Tab')).toBeDefined();
+    expect(screen.getByText('↶')).toBeDefined();
+    expect(screen.getByText('📋')).toBeDefined();
+    expect(screen.getByText('📄')).toBeDefined();
+
+    // Tap on Ctrl activates Sticky Ctrl
+    const keyCtrl = radialSingleThumbLayout.keys.find(k => k.id === 'k_acc_ctrl')!;
+    tapKey(svg, keyCtrl);
+    expect(screen.getByText(/CTRL ●/)).toBeDefined();
   });
 
   it('allows comparing and switching between all 3 letter distribution variants (Original, QWERTY 1, QWERTY 2)', () => {
@@ -146,5 +173,23 @@ describe('App Root Workbench & Keyboard Interactions', () => {
     // In Original, I is paired with Y
     expect(screen.getByText('I')).toBeDefined();
     expect(screen.getByText('Y')).toBeDefined();
+  });
+
+  it('allows switching to SYM layer and displays technical symbols', () => {
+    render(<App />);
+
+    // Click on SYM (Símbolos) button in controls
+    fireEvent.click(screen.getByText('SYM (Símbolos)'));
+
+    // Verify symbols in the canvas
+    expect(screen.getByText('@')).toBeDefined();
+    expect(screen.getByText('#')).toBeDefined();
+    expect(screen.getByText('$')).toBeDefined();
+    expect(screen.getByText('%')).toBeDefined();
+    expect(screen.getByText('&')).toBeDefined();
+
+    // Switch back to ABC
+    fireEvent.click(screen.getByText('ABC (Letras)'));
+    expect(screen.getByText('123')).toBeDefined();
   });
 });

@@ -1,6 +1,7 @@
-import type { LayoutDefinition, KeyDefinition } from '../types';
+import type { LayoutDefinition, KeyDefinition, KeyboardLayer } from '../types';
 
 export type RadialLetterMapping = 'phonotactic' | 'qwerty-horizontal' | 'qwerty-column';
+export type { KeyboardLayer };
 
 export interface RadialLetterMappingOption {
   id: RadialLetterMapping;
@@ -36,6 +37,7 @@ export interface RadialTuningParams {
   arcScale: number;  // Factor de escala de los arcos en % (base: 80)
   keyScale: number;  // Factor de tamaño de teclas en % (base: 75)
   mapping?: RadialLetterMapping;
+  layer?: KeyboardLayer;
 }
 
 export const DEFAULT_RADIAL_TUNING: RadialTuningParams = {
@@ -196,13 +198,15 @@ const MAPPING_CONFIGS: Record<
 export function createRadialSingleThumbLayout(
   params: Partial<RadialTuningParams> = {},
   isLeft: boolean = false,
-  mapping?: RadialLetterMapping
+  mapping?: RadialLetterMapping,
+  layer?: KeyboardLayer
 ): LayoutDefinition {
   const pivotX = params.pivotX ?? DEFAULT_RADIAL_TUNING.pivotX;
   const pivotY = params.pivotY ?? DEFAULT_RADIAL_TUNING.pivotY;
   const arcScale = (params.arcScale ?? DEFAULT_RADIAL_TUNING.arcScale) / 100;
   const keyScale = (params.keyScale ?? DEFAULT_RADIAL_TUNING.keyScale) / 100;
   const activeMapping = mapping ?? params.mapping ?? 'phonotactic';
+  const activeLayer = layer ?? params.layer ?? 'abc';
   const config = MAPPING_CONFIGS[activeMapping] ?? MAPPING_CONFIGS.phonotactic;
 
   // Radios concéntricos calculados sobre la base angular ergonómica
@@ -213,56 +217,14 @@ export function createRadialSingleThumbLayout(
   const rInSpace = Math.round(52 * arcScale);
   const rOutSpace = Math.round(92 * arcScale);
 
-  // 1. Arco Exterior de Números y Símbolos Directos (r = rNumbers px, 10 botones)
-  const arc0KeysData: Array<{ id: string; char: string; display: string; sec: string }> = [
-    { id: 'k_1', char: '1', display: '1', sec: '!' },
-    { id: 'k_2', char: '2', display: '2', sec: '"' },
-    { id: 'k_3', char: '3', display: '3', sec: '#' },
-    { id: 'k_4', char: '4', display: '4', sec: '$' },
-    { id: 'k_5', char: '5', display: '5', sec: '%' },
-    { id: 'k_6', char: '6', display: '6', sec: '&' },
-    { id: 'k_7', char: '7', display: '7', sec: '/' },
-    { id: 'k_8', char: '8', display: '8', sec: '(' },
-    { id: 'k_9', char: '9', display: '9', sec: ')' },
-    { id: 'k_0', char: '0', display: '0', sec: '=' },
-  ];
-  const arc0Numbers: KeyDefinition[] = arc0KeysData.map((k, i) => {
-    const deg = -172 + i * ((172 - 90) / (arc0KeysData.length - 1));
-    return createPolarKey(k.id, k.char, k.display, rNumbers, deg, {
-      type: 'number',
-      secondaryChar: k.sec,
-      radius: Math.round(18 * keyScale),
-      px: pivotX,
-      py: pivotY
-    });
-  });
-
-  // 2. Arco Superior de Letras Dobles (r = rUpper px, 8 botones)
-  const arc1KeysData = config.upper;
-  const arc1Upper: KeyDefinition[] = arc1KeysData.map((k, i) => {
-    const deg = -170 + i * ((170 - 90) / (arc1KeysData.length - 1));
-    return createPolarKey(k.id, k.char, k.display, rUpper, deg, {
-      radius: Math.round(22 * keyScale),
-      secondaryChar: k.sec,
-      px: pivotX,
-      py: pivotY
-    });
-  });
-
-  // 3. Arco Dorado Interior de Letras Dobles (r = rGolden px, 6 botones)
-  const arc2KeysData = config.golden;
-  const arc2Golden: KeyDefinition[] = arc2KeysData.map((k, i) => {
-    const deg = -168 + i * ((168 - 92) / (arc2KeysData.length - 1));
-    return createPolarKey(k.id, k.char, k.display, rGolden, deg, {
-      radius: Math.round(24 * keyScale),
-      secondaryChar: k.sec,
-      px: pivotX,
-      py: pivotY
-    });
-  });
-
+  // 1. Arco Exterior (r = rNumbers px, 10 botones)
+  let arc0KeysData: Array<{ id: string; char: string; display: string; sec?: string; type?: KeyDefinition['type'] }>;
+  // 2. Arco Superior (r = rUpper px, 8 botones)
+  let arc1KeysData: Array<{ id: string; char: string; display: string; sec?: string; type?: KeyDefinition['type'] }>;
+  // 3. Arco Dorado Interior (r = rGolden px, 6 botones)
+  let arc2KeysData: Array<{ id: string; char: string; display: string; sec?: string; type?: KeyDefinition['type'] }>;
   // 4. Arco Interior de Controles (r = rControls px, 5 botones)
-  const arc3ControlsData: Array<{
+  let arc3ControlsData: Array<{
     id: string;
     char: string;
     display: string;
@@ -270,13 +232,153 @@ export function createRadialSingleThumbLayout(
     type: KeyDefinition['type'];
     deg: number;
     rad: number;
-  }> = [
-    { id: 'k_shift', char: 'shift', display: '⇧', sec: '\t', type: 'action', deg: -165, rad: 20 },
-    { id: 'k_tilde', char: '´', display: '´', sec: '¿', type: 'action', deg: -147, rad: 20 },
-    { id: 'k_comma', char: ',', display: ',', sec: ':', type: 'punctuation', deg: -129, rad: 18 },
-    { id: 'k_bksp', char: '\b', display: '⌫', type: 'action', deg: -111, rad: 20 },
-    { id: 'k_enter', char: '\n', display: '↵', type: 'action', deg: -93, rad: 20 },
-  ];
+  }>;
+
+  if (activeLayer === '123') {
+    // Capa Numérica: Polar Numpad Mix (3x3 en arcos) + Operadores + Accesos
+    arc0KeysData = [
+      { id: 'k_acc_abc', char: 'layer_abc', display: 'ABC', sec: 'A', type: 'action' },
+      { id: 'k_acc_sym', char: 'layer_sym', display: 'SYM', sec: '#', type: 'action' },
+      { id: 'k_par_o', char: '(', display: '(', sec: '[', type: 'punctuation' },
+      { id: 'k_par_c', char: ')', display: ')', sec: ']', type: 'punctuation' },
+      { id: 'k_num_7', char: '7', display: '7', sec: '&', type: 'number' },
+      { id: 'k_num_8', char: '8', display: '8', sec: '[', type: 'number' },
+      { id: 'k_num_9', char: '9', display: '9', sec: ']', type: 'number' },
+      { id: 'k_op_div', char: '/', display: '/', sec: '\\', type: 'punctuation' },
+      { id: 'k_op_mul', char: '*', display: '*', sec: '×', type: 'punctuation' },
+      { id: 'k_bksp_123', char: '\b', display: '⌫', type: 'action' },
+    ];
+
+    arc1KeysData = [
+      { id: 'k_acc_esc', char: 'esc', display: 'Esc', type: 'action' },
+      { id: 'k_acc_tab', char: '\t', display: 'Tab', type: 'action' },
+      { id: 'k_num_4', char: '4', display: '4', sec: '$', type: 'number' },
+      { id: 'k_num_5', char: '5', display: '5', sec: '{', type: 'number' },
+      { id: 'k_num_6', char: '6', display: '6', sec: '}', type: 'number' },
+      { id: 'k_op_sub', char: '-', display: '-', sec: '_', type: 'punctuation' },
+      { id: 'k_op_add', char: '+', display: '+', sec: '±', type: 'punctuation' },
+      { id: 'k_op_pow', char: '^', display: '^', sec: '%', type: 'punctuation' },
+    ];
+
+    arc2KeysData = [
+      { id: 'k_num_1', char: '1', display: '1', sec: '!', type: 'number' },
+      { id: 'k_num_2', char: '2', display: '2', sec: '"', type: 'number' },
+      { id: 'k_num_3', char: '3', display: '3', sec: '#', type: 'number' },
+      { id: 'k_op_eq', char: '=', display: '=', sec: '≈', type: 'punctuation' },
+      { id: 'k_num_0', char: '0', display: '0', sec: '°', type: 'number' },
+      { id: 'k_num_dot', char: '.', display: '.', sec: ',', type: 'punctuation' },
+    ];
+
+    arc3ControlsData = [
+      { id: 'k_ctrl', char: 'ctrl', display: 'Ctrl', type: 'action', deg: -165, rad: 20 },
+      { id: 'k_alt', char: 'alt', display: 'Alt', type: 'action', deg: -147, rad: 20 },
+      { id: 'k_comma', char: ',', display: ',', sec: ':', type: 'punctuation', deg: -129, rad: 18 },
+      { id: 'k_supr', char: 'delete_forward', display: 'Supr', type: 'action', deg: -111, rad: 20 },
+      { id: 'k_enter', char: '\n', display: '↵', type: 'action', deg: -93, rad: 20 },
+    ];
+  } else if (activeLayer === 'sym') {
+    // Capa de Símbolos: Programación y Puntuación Técnica
+    arc0KeysData = [
+      { id: 'k_sym_abc', char: 'layer_abc', display: 'ABC', type: 'action' },
+      { id: 'k_sym_123', char: 'layer_123', display: '123', type: 'action' },
+      { id: 'k_sym_sqo', char: '[', display: '[', sec: '(', type: 'punctuation' },
+      { id: 'k_sym_sqc', char: ']', display: ']', sec: ')', type: 'punctuation' },
+      { id: 'k_sym_cro', char: '{', display: '{', sec: '<', type: 'punctuation' },
+      { id: 'k_sym_crc', char: '}', display: '}', sec: '>', type: 'punctuation' },
+      { id: 'k_sym_lto', char: '<', display: '<', sec: '«', type: 'punctuation' },
+      { id: 'k_sym_gto', char: '>', display: '>', sec: '»', type: 'punctuation' },
+      { id: 'k_sym_bsh', char: '\\', display: '\\', sec: '/', type: 'punctuation' },
+      { id: 'k_sym_pip', char: '|', display: '|', sec: '¦', type: 'punctuation' },
+    ];
+
+    arc1KeysData = [
+      { id: 'k_sym_at', char: '@', display: '@', sec: '€', type: 'punctuation' },
+      { id: 'k_sym_hsh', char: '#', display: '#', sec: '№', type: 'punctuation' },
+      { id: 'k_sym_dlr', char: '$', display: '$', sec: '¥', type: 'punctuation' },
+      { id: 'k_sym_pct', char: '%', display: '%', sec: '‰', type: 'punctuation' },
+      { id: 'k_sym_amp', char: '&', display: '&', sec: '§', type: 'punctuation' },
+      { id: 'k_sym_und', char: '_', display: '_', sec: '-', type: 'punctuation' },
+      { id: 'k_sym_tld', char: '~', display: '~', sec: '`', type: 'punctuation' },
+      { id: 'k_sym_crt', char: '^', display: '^', sec: '°', type: 'punctuation' },
+    ];
+
+    arc2KeysData = [
+      { id: 'k_sym_dqt', char: '"', display: '"', sec: '“', type: 'punctuation' },
+      { id: 'k_sym_sqt', char: '\'', display: '\'', sec: '‘', type: 'punctuation' },
+      { id: 'k_sym_qmo', char: '¿', display: '¿', sec: '?', type: 'punctuation' },
+      { id: 'k_sym_qmc', char: '?', display: '?', sec: '¿', type: 'punctuation' },
+      { id: 'k_sym_emo', char: '¡', display: '¡', sec: '!', type: 'punctuation' },
+      { id: 'k_sym_emc', char: '!', display: '!', sec: '¡', type: 'punctuation' },
+    ];
+
+    arc3ControlsData = [
+      { id: 'k_sym_col', char: ':', display: ':', type: 'punctuation', deg: -165, rad: 20 },
+      { id: 'k_sym_sem', char: ';', display: ';', type: 'punctuation', deg: -147, rad: 20 },
+      { id: 'k_sym_gra', char: '`', display: '`', type: 'punctuation', deg: -129, rad: 18 },
+      { id: 'k_bksp', char: '\b', display: '⌫', type: 'action', deg: -111, rad: 20 },
+      { id: 'k_enter', char: '\n', display: '↵', type: 'action', deg: -93, rad: 20 },
+    ];
+  } else {
+    // Capa Alfabética Principal (ABC)
+    // Arco Exterior: Teclas accesorias y accesos directos (con números 1..0 en flick)
+    arc0KeysData = [
+      { id: 'k_acc_123', char: 'layer_123', display: '123', sec: '1', type: 'action' },
+      { id: 'k_acc_sym', char: 'layer_sym', display: 'SYM', sec: '2', type: 'action' },
+      { id: 'k_acc_ctrl', char: 'ctrl', display: 'Ctrl', sec: '3', type: 'action' },
+      { id: 'k_acc_alt', char: 'alt', display: 'Alt', sec: '4', type: 'action' },
+      { id: 'k_acc_esc', char: 'esc', display: 'Esc', sec: '5', type: 'action' },
+      { id: 'k_acc_tab', char: '\t', display: 'Tab', sec: '6', type: 'action' },
+      { id: 'k_acc_supr', char: 'delete_forward', display: 'Supr', sec: '7', type: 'action' },
+      { id: 'k_acc_undo', char: 'undo', display: '↶', sec: '8', type: 'action' },
+      { id: 'k_acc_paste', char: 'paste', display: '📋', sec: '9', type: 'action' },
+      { id: 'k_acc_copy', char: 'copy', display: '📄', sec: '0', type: 'action' },
+    ];
+
+    arc1KeysData = config.upper;
+    arc2KeysData = config.golden;
+
+    arc3ControlsData = [
+      { id: 'k_shift', char: 'shift', display: '⇧', sec: '\t', type: 'action', deg: -165, rad: 20 },
+      { id: 'k_tilde', char: '´', display: '´', sec: '¿', type: 'action', deg: -147, rad: 20 },
+      { id: 'k_comma', char: ',', display: ',', sec: ':', type: 'punctuation', deg: -129, rad: 18 },
+      { id: 'k_bksp', char: '\b', display: '⌫', type: 'action', deg: -111, rad: 20 },
+      { id: 'k_enter', char: '\n', display: '↵', type: 'action', deg: -93, rad: 20 },
+    ];
+  }
+
+  const arc0Keys: KeyDefinition[] = arc0KeysData.map((k, i) => {
+    const deg = -172 + i * ((172 - 90) / (arc0KeysData.length - 1));
+    return createPolarKey(k.id, k.char, k.display, rNumbers, deg, {
+      type: k.type ?? 'action',
+      secondaryChar: k.sec,
+      radius: Math.round(18 * keyScale),
+      px: pivotX,
+      py: pivotY
+    });
+  });
+
+  const arc1Keys: KeyDefinition[] = arc1KeysData.map((k, i) => {
+    const deg = -170 + i * ((170 - 90) / (arc1KeysData.length - 1));
+    return createPolarKey(k.id, k.char, k.display, rUpper, deg, {
+      type: k.type ?? 'letter',
+      radius: Math.round(22 * keyScale),
+      secondaryChar: k.sec,
+      px: pivotX,
+      py: pivotY
+    });
+  });
+
+  const arc2Keys: KeyDefinition[] = arc2KeysData.map((k, i) => {
+    const deg = -168 + i * ((168 - 92) / (arc2KeysData.length - 1));
+    return createPolarKey(k.id, k.char, k.display, rGolden, deg, {
+      type: k.type ?? 'letter',
+      radius: Math.round(24 * keyScale),
+      secondaryChar: k.sec,
+      px: pivotX,
+      py: pivotY
+    });
+  });
+
   const arc3Controls: KeyDefinition[] = arc3ControlsData.map(k => {
     return createPolarKey(k.id, k.char, k.display, rControls, k.deg, {
       type: k.type,
@@ -303,20 +405,20 @@ export function createRadialSingleThumbLayout(
   };
 
   const rightKeys = [
-    ...arc0Numbers,
-    ...arc1Upper,
-    ...arc2Golden,
+    ...arc0Keys,
+    ...arc1Keys,
+    ...arc2Keys,
     ...arc3Controls,
     spaceKeyRight
   ];
 
-  const mappingLabel = config.name;
+  const layerLabel = activeLayer === 'abc' ? config.name : activeLayer === '123' ? 'NumPad Polar (123)' : 'Símbolos (SYM)';
 
   if (!isLeft) {
     return {
       id: 'radial-single-thumb-right',
-      name: `Polar Ergonómico Monomanual (Diestro - ${mappingLabel})`,
-      description: `14 botones dobles (Tap vs Flick - ${mappingLabel}) con las 27 letras del español. Densidad creciente: Controles (5) < Golden (6) < Upper (8) < Números (10).`,
+      name: `Polar Ergonómico Monomanual (Diestro - ${layerLabel})`,
+      description: `Layout polar monomanual (${layerLabel}). Densidad creciente: Controles (5) < Golden (6) < Upper (8) < Exterior (10).`,
       mode: 'single-thumb-right',
       width: 360,
       height: 330,
@@ -355,8 +457,8 @@ export function createRadialSingleThumbLayout(
 
   return {
     id: 'radial-single-thumb-left',
-    name: `Polar Ergonómico Monomanual (Zurdo - ${mappingLabel})`,
-    description: `Layout radial simétrico para pulgar izquierdo (${mappingLabel}) con 14 botones dobles (5 < 6 < 8 < 10).`,
+    name: `Polar Ergonómico Monomanual (Zurdo - ${layerLabel})`,
+    description: `Layout radial simétrico para pulgar izquierdo (${layerLabel}) con densidad creciente (5 < 6 < 8 < 10).`,
     mode: 'single-thumb-left',
     width: 360,
     height: 330,
@@ -368,5 +470,5 @@ export function createRadialSingleThumbLayout(
   };
 }
 
-export const radialSingleThumbLayout: LayoutDefinition = createRadialSingleThumbLayout(DEFAULT_RADIAL_TUNING, false, 'phonotactic');
-export const radialSingleThumbLeftLayout: LayoutDefinition = createRadialSingleThumbLayout(DEFAULT_RADIAL_TUNING, true, 'phonotactic');
+export const radialSingleThumbLayout: LayoutDefinition = createRadialSingleThumbLayout(DEFAULT_RADIAL_TUNING, false, 'phonotactic', 'abc');
+export const radialSingleThumbLeftLayout: LayoutDefinition = createRadialSingleThumbLayout(DEFAULT_RADIAL_TUNING, true, 'phonotactic', 'abc');

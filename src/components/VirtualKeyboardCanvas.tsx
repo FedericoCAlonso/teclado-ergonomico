@@ -1,14 +1,17 @@
 import React, { useState, useRef, useCallback } from 'react';
-import type { LayoutDefinition, KeyDefinition, ShiftMode } from '../types';
+import type { LayoutDefinition, KeyDefinition, ShiftMode, ModifierMode, KeyboardLayer } from '../types';
 import type { Point2D } from '../biomechanics/polarModel';
 import { getOcclusionPolygon } from '../biomechanics/polarModel';
 
-export type { ShiftMode };
+export type { ShiftMode, ModifierMode, KeyboardLayer };
 
 interface VirtualKeyboardCanvasProps {
   layout: LayoutDefinition;
   accentPending: boolean;
   shiftState: ShiftMode;
+  ctrlState?: ModifierMode;
+  altState?: ModifierMode;
+  currentLayer?: KeyboardLayer;
   showOcclusionShadow: boolean;
   showBiomechanicArcs: boolean;
   onKeyPress: (char: string, keyDef: KeyDefinition, touchPoint: Point2D) => void;
@@ -21,6 +24,9 @@ export const VirtualKeyboardCanvas: React.FC<VirtualKeyboardCanvasProps> = ({
   layout,
   accentPending,
   shiftState,
+  ctrlState = 'none',
+  altState = 'none',
+  currentLayer = 'abc',
   showOcclusionShadow,
   showBiomechanicArcs,
   onKeyPress,
@@ -208,6 +214,7 @@ export const VirtualKeyboardCanvas: React.FC<VirtualKeyboardCanvasProps> = ({
       <svg
         ref={svgRef}
         data-testid="virtual-keyboard-canvas"
+        data-layer={currentLayer}
         viewBox={`0 0 ${layout.width} ${layout.height}`}
         className="w-full h-auto cursor-pointer"
         onPointerDown={handlePointerDown}
@@ -292,6 +299,9 @@ export const VirtualKeyboardCanvas: React.FC<VirtualKeyboardCanvasProps> = ({
           const isNumber = key.type === 'number';
           const isTildeKey = key.char === '´';
           const isShiftKey = key.char === 'shift';
+          const isCtrlKey = key.char === 'ctrl';
+          const isAltKey = key.char === 'alt';
+          const isLayerKey = key.char.startsWith('layer_');
           const isVowel = VOWEL_CHARS.has(key.char.toLowerCase());
           const hasSecondary = Boolean(key.secondaryChar);
 
@@ -339,6 +349,43 @@ export const VirtualKeyboardCanvas: React.FC<VirtualKeyboardCanvasProps> = ({
               textColor = '#94a3b8';
               borderColor = '#334155';
             }
+          } else if (isCtrlKey) {
+            if (ctrlState === 'locked') {
+              keyFill = '#0284c7';
+              textColor = '#ffffff';
+              borderColor = '#38bdf8';
+              strokeWidth = 2.4;
+            } else if (ctrlState === 'sticky') {
+              keyFill = '#0369a1';
+              textColor = '#38bdf8';
+              borderColor = '#38bdf8';
+              strokeWidth = 2.0;
+            } else {
+              keyFill = '#172033';
+              textColor = '#38bdf8';
+              borderColor = '#1e3a5f';
+            }
+          } else if (isAltKey) {
+            if (altState === 'locked') {
+              keyFill = '#7c3aed';
+              textColor = '#ffffff';
+              borderColor = '#a78bfa';
+              strokeWidth = 2.4;
+            } else if (altState === 'sticky') {
+              keyFill = '#5b21b6';
+              textColor = '#c4b5fd';
+              borderColor = '#a78bfa';
+              strokeWidth = 2.0;
+            } else {
+              keyFill = '#172033';
+              textColor = '#c4b5fd';
+              borderColor = '#372d54';
+            }
+          } else if (isLayerKey) {
+            keyFill = '#09251e';
+            textColor = '#34d399';
+            borderColor = '#059669';
+            strokeWidth = 1.6;
           } else if (accentPending && isVowel) {
             borderColor = '#f59e0b';
             strokeWidth = 2.0;
@@ -357,7 +404,15 @@ export const VirtualKeyboardCanvas: React.FC<VirtualKeyboardCanvasProps> = ({
             textColor = '#e2e8f0';
           }
 
-          const primaryDisplay = (isShiftKey && shiftState === 'caps') ? '⇪' : key.display;
+          let primaryDisplay = key.display;
+          if (isShiftKey && shiftState === 'caps') {
+            primaryDisplay = '⇪';
+          } else if (isCtrlKey) {
+            primaryDisplay = ctrlState === 'locked' ? 'CTRL 🔒' : ctrlState === 'sticky' ? 'CTRL ●' : 'Ctrl';
+          } else if (isAltKey) {
+            primaryDisplay = altState === 'locked' ? 'ALT 🔒' : altState === 'sticky' ? 'ALT ●' : 'Alt';
+          }
+
           const secondaryDisplay = key.secondaryChar
             ? (key.secondaryChar.length === 1 && /[a-zñ]/i.test(key.secondaryChar)
                 ? key.secondaryChar.toUpperCase()
@@ -402,16 +457,20 @@ export const VirtualKeyboardCanvas: React.FC<VirtualKeyboardCanvasProps> = ({
                   {/* Letra o Función Principal (Tap) */}
                   <text
                     x={hasSecondary ? key.x - key.radius * 0.16 : key.x}
-                    y={key.y + (hasSecondary ? key.radius * 0.28 : (isAction && key.display.length === 1 ? 5 : 4.5))}
+                    y={key.y + (hasSecondary ? (primaryDisplay.length > 2 ? key.radius * 0.20 : key.radius * 0.28) : (isAction && key.display.length === 1 ? 5 : 4.5))}
                     textAnchor="middle"
                     fill={isActive && isFlicking && hasSecondary ? '#64748b' : textColor}
                     fontSize={
                       hasSecondary
-                        ? `${Math.round(key.radius * 0.95)}px`
+                        ? (primaryDisplay.length >= 4
+                            ? `${Math.round(key.radius * 0.52)}px`
+                            : primaryDisplay.length >= 3
+                            ? `${Math.round(key.radius * 0.70)}px`
+                            : `${Math.round(key.radius * 0.95)}px`)
                         : isNumber
                         ? '12.5px'
                         : isAction
-                        ? '13px'
+                        ? (primaryDisplay.length >= 4 ? '9.5px' : primaryDisplay.length >= 3 ? '11px' : '13px')
                         : '14px'
                     }
                     fontWeight={isActive || isNumber || hasSecondary ? '800' : '600'}

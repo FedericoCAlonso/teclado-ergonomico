@@ -1,5 +1,5 @@
 import React from 'react';
-import { AVAILABLE_LAYOUTS, RADIAL_MAPPING_OPTIONS, type RadialLetterMapping } from '../layouts';
+import { AVAILABLE_LAYOUTS, RADIAL_MAPPING_OPTIONS, type RadialLetterMapping, type KeyboardLayer } from '../layouts';
 import type { LayoutDefinition } from '../types';
 
 interface LayoutControlsProps {
@@ -7,6 +7,8 @@ interface LayoutControlsProps {
   onSelectLayout: (layout: LayoutDefinition) => void;
   letterMapping: RadialLetterMapping;
   onSelectLetterMapping: (mapping: RadialLetterMapping) => void;
+  currentLayer?: KeyboardLayer;
+  onSelectLayer?: (layer: KeyboardLayer) => void;
   showBiomechanicArcs: boolean;
   onToggleBiomechanicArcs: (val: boolean) => void;
   showOcclusionShadow: boolean;
@@ -27,6 +29,8 @@ export const LayoutControls: React.FC<LayoutControlsProps> = ({
   onSelectLayout,
   letterMapping,
   onSelectLetterMapping,
+  currentLayer = 'abc',
+  onSelectLayer,
   showBiomechanicArcs,
   onToggleBiomechanicArcs,
   showOcclusionShadow,
@@ -81,6 +85,36 @@ export const LayoutControls: React.FC<LayoutControlsProps> = ({
         <p className="text-[10px] text-slate-400 mt-1.5 leading-relaxed bg-slate-950/60 p-2 rounded-lg border border-slate-800/60">
           {RADIAL_MAPPING_OPTIONS.find(o => o.id === letterMapping)?.description}
         </p>
+      </div>
+
+      {/* Selector de Capa Activa (ABC / 123 / SYM) */}
+      <div className="pt-2 border-t border-slate-800/80">
+        <div className="flex items-center justify-between mb-1.5">
+          <label className="text-[11px] font-bold text-slate-300 uppercase tracking-wider">
+            Capa de Teclado Activa:
+          </label>
+          <span className="text-[9px] text-emerald-400 font-semibold px-1.5 py-0.5 rounded bg-emerald-950/60 border border-emerald-800/60">
+            {currentLayer === 'abc' ? 'Alfabético ABC' : currentLayer === '123' ? 'NumPad Polar' : 'Símbolos SYM'}
+          </span>
+        </div>
+        <div className="grid grid-cols-3 gap-1.5">
+          {(['abc', '123', 'sym'] as const).map((ly) => {
+            const isSel = currentLayer === ly;
+            return (
+              <button
+                key={ly}
+                onClick={() => onSelectLayer?.(ly)}
+                className={`py-1.5 rounded-xl border text-center transition-all active:scale-95 font-bold text-[11px] ${
+                  isSel
+                    ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/60 shadow-sm shadow-emerald-500/20'
+                    : 'bg-slate-950 text-slate-400 border-slate-800 hover:bg-slate-800/80'
+                }`}
+              >
+                {ly === 'abc' ? 'ABC (Letras)' : ly === '123' ? '123 (NumPad)' : 'SYM (Símbolos)'}
+              </button>
+            );
+          })}
+        </div>
       </div>
 
       {/* Selector de Layout General (Diestro / Zurdo / Comparativas) */}
