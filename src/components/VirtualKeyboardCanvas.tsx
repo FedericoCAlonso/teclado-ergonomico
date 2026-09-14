@@ -59,16 +59,15 @@ export const VirtualKeyboardCanvas: React.FC<VirtualKeyboardCanvasProps> = ({
   }, [layout.width, layout.height]);
 
   const findClosestKey = (pt: Point2D): KeyDefinition | null => {
-    const pivot = layout.pivotPoints.right ?? layout.pivotPoints.left ?? { x: 332, y: 325 };
-    const distToPivot = Math.hypot(pt.x - pivot.x, pt.y - pivot.y);
-
-    // Detección táctil en el segmento de arco de la barra espaciadora
-    const spaceKey = layout.keys.find(k => k.type === 'space');
-    if (spaceKey) {
+    // Detección en segmento de arco de barra espaciadora polar con curva
+    const curvedSpaceKey = layout.keys.find(k => k.type === 'space' && k.path);
+    if (curvedSpaceKey) {
+      const pivot = layout.pivotPoints.right ?? layout.pivotPoints.left ?? { x: 332, y: 325 };
+      const distToPivot = Math.hypot(pt.x - pivot.x, pt.y - pivot.y);
       const minSpaceR = (layout.arcRadii?.[3] ?? 98) * 0.40;
       const maxSpaceR = (layout.arcRadii?.[3] ?? 98) * 0.85;
       if (distToPivot >= minSpaceR && distToPivot <= maxSpaceR) {
-        return spaceKey;
+        return curvedSpaceKey;
       }
     }
 
@@ -76,15 +75,16 @@ export const VirtualKeyboardCanvas: React.FC<VirtualKeyboardCanvasProps> = ({
     let minDist = 9999;
 
     for (const key of layout.keys) {
-      if (key.type === 'space') continue;
+      if (key.type === 'space' && key.path) continue;
       const d = Math.hypot(pt.x - key.x, pt.y - key.y);
-      if (d < minDist) {
+      const maxHitDist = key.type === 'space' ? Math.max(34, key.radius * 1.25) : 34;
+      if (d < minDist && d <= maxHitDist) {
         minDist = d;
         closestKey = key;
       }
     }
 
-    return minDist < 34 ? closestKey : null;
+    return closestKey;
   };
 
   const handlePointerDown = (e: React.PointerEvent<SVGSVGElement>) => {
@@ -305,10 +305,13 @@ export const VirtualKeyboardCanvas: React.FC<VirtualKeyboardCanvasProps> = ({
           const isVowel = VOWEL_CHARS.has(key.char.toLowerCase());
           const hasSecondary = Boolean(key.secondaryChar);
 
-          let keyFill = '#172033';
-          let textColor = '#f1f5f9';
-          let borderColor = '#2d3b55';
-          let strokeWidth = 1.2;
+          const isShiftActive = shiftState !== 'none';
+          const isLetterChar = (s: string) => s.length === 1 && /[a-zñáéíóú]/i.test(s);
+
+          let keyFill = '#1e293b';
+          let textColor = '#f8fafc';
+          let borderColor = '#475569';
+          let strokeWidth = 1.4;
 
           if (isActive) {
             if (isFlicking && hasSecondary) {
@@ -318,7 +321,7 @@ export const VirtualKeyboardCanvas: React.FC<VirtualKeyboardCanvasProps> = ({
               strokeWidth = 2.8;
             } else {
               keyFill = '#38bdf8';
-              textColor = '#0f172a';
+              textColor = '#090d16';
               borderColor = '#bae6fd';
               strokeWidth = 2.5;
             }
@@ -346,8 +349,8 @@ export const VirtualKeyboardCanvas: React.FC<VirtualKeyboardCanvasProps> = ({
               strokeWidth = 2.0;
             } else {
               keyFill = '#1e293b';
-              textColor = '#94a3b8';
-              borderColor = '#334155';
+              textColor = '#cbd5e1';
+              borderColor = '#475569';
             }
           } else if (isCtrlKey) {
             if (ctrlState === 'locked') {
@@ -382,42 +385,58 @@ export const VirtualKeyboardCanvas: React.FC<VirtualKeyboardCanvasProps> = ({
               borderColor = '#372d54';
             }
           } else if (isLayerKey) {
-            keyFill = '#09251e';
+            keyFill = '#064e3b';
             textColor = '#34d399';
-            borderColor = '#059669';
+            borderColor = '#10b981';
             strokeWidth = 1.6;
           } else if (accentPending && isVowel) {
             borderColor = '#f59e0b';
-            strokeWidth = 2.0;
-            keyFill = '#1e2538';
+            strokeWidth = 2.2;
+            keyFill = '#332a18';
           } else if (isNumber) {
-            keyFill = '#0b1120';
+            keyFill = '#0f172a';
             textColor = '#38bdf8';
-            borderColor = '#1e293b';
+            borderColor = '#334155';
           } else if (isSpace) {
             keyFill = 'url(#spacebarGradient)';
             borderColor = '#0284c7';
             textColor = '#38bdf8';
           } else if (isAction) {
-            keyFill = '#1e293b';
+            keyFill = '#0f172a';
             borderColor = '#475569';
             textColor = '#e2e8f0';
           }
 
           let primaryDisplay = key.display;
-          if (isShiftKey && shiftState === 'caps') {
+          if (key.type === 'letter' || isLetterChar(key.char)) {
+            primaryDisplay = isShiftActive ? key.char.toUpperCase() : key.char.toLowerCase();
+          } else if (isShiftKey && shiftState === 'caps') {
             primaryDisplay = '⇪';
           } else if (isCtrlKey) {
             primaryDisplay = ctrlState === 'locked' ? 'CTRL 🔒' : ctrlState === 'sticky' ? 'CTRL ●' : 'Ctrl';
           } else if (isAltKey) {
             primaryDisplay = altState === 'locked' ? 'ALT 🔒' : altState === 'sticky' ? 'ALT ●' : 'Alt';
+          } else if (isSpace) {
+            primaryDisplay = '⟷';
           }
 
-          const secondaryDisplay = key.secondaryChar
-            ? (key.secondaryChar.length === 1 && /[a-zñ]/i.test(key.secondaryChar)
-                ? key.secondaryChar.toUpperCase()
-                : key.secondaryChar)
-            : null;
+          let secondaryDisplay = key.secondaryChar ?? null;
+          if (secondaryDisplay && isLetterChar(secondaryDisplay)) {
+            secondaryDisplay = isShiftActive ? secondaryDisplay.toUpperCase() : secondaryDisplay.toLowerCase();
+          }
+
+          const isLeftHand = layout.mode === 'single-thumb-left' || key.handAssigned === 'left';
+          const primaryX = hasSecondary
+            ? (isLeftHand ? key.x + key.radius * 0.16 : key.x - key.radius * 0.16)
+            : key.x;
+          const primaryY = hasSecondary
+            ? key.y + (primaryDisplay.length > 2 ? key.radius * 0.20 : key.radius * 0.30)
+            : (isSpace ? key.y + 4 : (isAction && primaryDisplay.length === 1 ? key.y + 5 : key.y + 4.5));
+
+          const secondaryX = isLeftHand
+            ? key.x - key.radius * 0.42
+            : key.x + key.radius * 0.42;
+          const secondaryY = key.y - key.radius * 0.28;
 
           return (
             <g key={key.id} filter="url(#keyGlow)">
@@ -432,14 +451,14 @@ export const VirtualKeyboardCanvas: React.FC<VirtualKeyboardCanvasProps> = ({
                   />
                   <text
                     x={key.x}
-                    y={key.y}
+                    y={key.y + 4}
                     textAnchor="middle"
                     fill={textColor}
-                    fontSize="10px"
+                    fontSize="13px"
                     fontWeight="bold"
-                    className="pointer-events-none select-none font-sans tracking-wider"
+                    className="pointer-events-none select-none font-sans tracking-widest"
                   >
-                    ESPACIO ⟷
+                    ⟷
                   </text>
                 </g>
               ) : (
@@ -456,8 +475,8 @@ export const VirtualKeyboardCanvas: React.FC<VirtualKeyboardCanvasProps> = ({
 
                   {/* Letra o Función Principal (Tap) */}
                   <text
-                    x={hasSecondary ? key.x - key.radius * 0.16 : key.x}
-                    y={key.y + (hasSecondary ? (primaryDisplay.length > 2 ? key.radius * 0.20 : key.radius * 0.28) : (isAction && key.display.length === 1 ? 5 : 4.5))}
+                    x={primaryX}
+                    y={primaryY}
                     textAnchor="middle"
                     fill={isActive && isFlicking && hasSecondary ? '#64748b' : textColor}
                     fontSize={
@@ -466,32 +485,34 @@ export const VirtualKeyboardCanvas: React.FC<VirtualKeyboardCanvasProps> = ({
                             ? `${Math.round(key.radius * 0.52)}px`
                             : primaryDisplay.length >= 3
                             ? `${Math.round(key.radius * 0.70)}px`
-                            : `${Math.round(key.radius * 0.95)}px`)
+                            : `${Math.round(key.radius * 0.94)}px`)
+                        : isSpace
+                        ? '13px'
                         : isNumber
-                        ? '12.5px'
+                        ? '13px'
                         : isAction
-                        ? (primaryDisplay.length >= 4 ? '9.5px' : primaryDisplay.length >= 3 ? '11px' : '13px')
-                        : '14px'
+                        ? (primaryDisplay.length >= 4 ? '10px' : primaryDisplay.length >= 3 ? '11.5px' : '13.5px')
+                        : `${Math.max(14, Math.round(key.radius * 0.88))}px`
                     }
-                    fontWeight={isActive || isNumber || hasSecondary ? '800' : '600'}
+                    fontWeight={isActive || isNumber || hasSecondary || isSpace ? '800' : '700'}
                     className="pointer-events-none select-none font-sans"
                   >
                     {primaryDisplay}
                   </text>
 
-                  {/* Carácter Secundario (Flick) en la esquina superior derecha */}
+                  {/* Carácter Secundario (Flick) con alto contraste */}
                   {secondaryDisplay && (
                     <text
-                      x={key.x + key.radius * 0.42}
-                      y={key.y - key.radius * 0.28}
+                      x={secondaryX}
+                      y={secondaryY}
                       textAnchor="middle"
-                      fill={isActive && isFlicking ? '#fbbf24' : '#94a3b8'}
+                      fill={isActive && isFlicking ? '#fde047' : '#fbbf24'}
                       fontSize={
                         isActive && isFlicking
-                          ? `${Math.round(key.radius * 0.75)}px`
-                          : `${Math.max(8, Math.round(key.radius * 0.52))}px`
+                          ? `${Math.round(key.radius * 0.76)}px`
+                          : `${Math.max(9, Math.round(key.radius * 0.56))}px`
                       }
-                      fontWeight={isActive && isFlicking ? '900' : '700'}
+                      fontWeight="800"
                       className="pointer-events-none select-none font-sans"
                     >
                       {secondaryDisplay}

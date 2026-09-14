@@ -25,7 +25,7 @@ const ACCENTED_VOWELS: Record<string, string> = {
 
 export const App: React.FC = () => {
   const [currentLayout, setCurrentLayout] = useState<LayoutDefinition>(radialSingleThumbLayout);
-  const [letterMapping, setLetterMapping] = useState<RadialLetterMapping>('phonotactic');
+  const [letterMapping, setLetterMapping] = useState<RadialLetterMapping>('qwerty-column');
   const [currentLayer, setCurrentLayer] = useState<KeyboardLayer>('abc');
   const [ctrlState, setCtrlState] = useState<ModifierMode>('none');
   const [altState, setAltState] = useState<ModifierMode>('none');
@@ -310,7 +310,7 @@ export const App: React.FC = () => {
     // 12. Inserción directa de carácter (Tap o Flick)
     pushHistory(inputText);
     let finalChar = char;
-    if (shiftState !== 'none' && finalChar.length === 1 && /[a-zñ]/i.test(finalChar)) {
+    if (shiftState !== 'none' && finalChar.length === 1 && /[a-zñáéíóú]/i.test(finalChar)) {
       finalChar = finalChar.toUpperCase();
       if (shiftState === 'shift') {
         setShiftState('none');

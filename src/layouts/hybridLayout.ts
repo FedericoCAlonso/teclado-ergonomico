@@ -68,7 +68,7 @@ const hybridKeys: KeyDefinition[] = [
 
   // Barra de Espacio y Controles Ergonómicos Inferiores
   createHybridKey('hy_comma', ',', ',', 70, 268, { type: 'punctuation', secondaryChar: '¿', handAssigned: 'left' }),
-  createHybridKey('hy_space', ' ', 'ESPACIO', 180, 275, { type: 'space', radius: 30 }),
+  createHybridKey('hy_space', ' ', '⟷', 180, 275, { type: 'space', radius: 30 }),
   createHybridKey('hy_dot', '.', '.', 290, 268, { type: 'punctuation', secondaryChar: '¡', handAssigned: 'right' }),
   createHybridKey('hy_bksp', '\b', '⌫', 328, 65, { type: 'action', radius: 20 }),
   createHybridKey('hy_enter', '\n', '↵', 32, 65, { type: 'action', radius: 20 })

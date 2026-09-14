@@ -44,7 +44,8 @@ export const DEFAULT_RADIAL_TUNING: RadialTuningParams = {
   pivotX: 332,
   pivotY: 325,
   arcScale: 80,
-  keyScale: 75
+  keyScale: 75,
+  mapping: 'qwerty-column'
 };
 
 /**
@@ -127,64 +128,64 @@ const MAPPING_CONFIGS: Record<
   'phonotactic': {
     name: 'Original (Frecuencia)',
     upper: [
-      { id: 'k_iy', char: 'i', display: 'I', sec: 'y' },
-      { id: 'k_dv', char: 'd', display: 'D', sec: 'v' },
-      { id: 'k_lh', char: 'l', display: 'L', sec: 'h' },
-      { id: 'k_cq', char: 'c', display: 'C', sec: 'q' },
-      { id: 'k_tx', char: 't', display: 'T', sec: 'x' },
-      { id: 'k_uw', char: 'u', display: 'U', sec: 'w' },
-      { id: 'k_mg', char: 'm', display: 'M', sec: 'g' },
-      { id: 'k_pb', char: 'p', display: 'P', sec: 'b' },
+      { id: 'k_iy', char: 'i', display: 'i', sec: 'y' },
+      { id: 'k_dv', char: 'd', display: 'd', sec: 'v' },
+      { id: 'k_lh', char: 'l', display: 'l', sec: 'h' },
+      { id: 'k_cq', char: 'c', display: 'c', sec: 'q' },
+      { id: 'k_tx', char: 't', display: 't', sec: 'x' },
+      { id: 'k_uw', char: 'u', display: 'u', sec: 'w' },
+      { id: 'k_mg', char: 'm', display: 'm', sec: 'g' },
+      { id: 'k_pb', char: 'p', display: 'p', sec: 'b' },
     ],
     golden: [
-      { id: 'k_ej', char: 'e', display: 'E', sec: 'j' },
-      { id: 'k_ak', char: 'a', display: 'A', sec: 'k' },
-      { id: 'k_odot', char: 'o', display: 'O', sec: '.' },
-      { id: 'k_sz', char: 's', display: 'S', sec: 'z' },
-      { id: 'k_rf', char: 'r', display: 'R', sec: 'f' },
-      { id: 'k_nene', char: 'n', display: 'N', sec: 'ñ' },
+      { id: 'k_ej', char: 'e', display: 'e', sec: 'j' },
+      { id: 'k_ak', char: 'a', display: 'a', sec: 'k' },
+      { id: 'k_odot', char: 'o', display: 'o', sec: '.' },
+      { id: 'k_sz', char: 's', display: 's', sec: 'z' },
+      { id: 'k_rf', char: 'r', display: 'r', sec: 'f' },
+      { id: 'k_nene', char: 'n', display: 'n', sec: 'ñ' },
     ]
   },
   'qwerty-horizontal': {
     name: 'QWERTY 1 (Horizontal)',
     upper: [
-      { id: 'k_qw', char: 'q', display: 'Q', sec: 'w' },
-      { id: 'k_er', char: 'e', display: 'E', sec: 'r' },
-      { id: 'k_ty', char: 't', display: 'T', sec: 'y' },
-      { id: 'k_ui', char: 'i', display: 'I', sec: 'u' },
-      { id: 'k_op', char: 'o', display: 'O', sec: 'p' },
-      { id: 'k_zx', char: 'z', display: 'Z', sec: 'x' },
-      { id: 'k_cv', char: 'c', display: 'C', sec: 'v' },
-      { id: 'k_bn', char: 'n', display: 'N', sec: 'b' },
+      { id: 'k_qw', char: 'q', display: 'q', sec: 'w' },
+      { id: 'k_er', char: 'e', display: 'e', sec: 'r' },
+      { id: 'k_ty', char: 't', display: 't', sec: 'y' },
+      { id: 'k_ui', char: 'i', display: 'i', sec: 'u' },
+      { id: 'k_op', char: 'o', display: 'o', sec: 'p' },
+      { id: 'k_zx', char: 'z', display: 'z', sec: 'x' },
+      { id: 'k_cv', char: 'c', display: 'c', sec: 'v' },
+      { id: 'k_bn', char: 'n', display: 'n', sec: 'b' },
     ],
     golden: [
-      { id: 'k_as', char: 'a', display: 'A', sec: 's' },
-      { id: 'k_df', char: 'd', display: 'D', sec: 'f' },
-      { id: 'k_gh', char: 'g', display: 'G', sec: 'h' },
-      { id: 'k_jk', char: 'j', display: 'J', sec: 'k' },
-      { id: 'k_lnene', char: 'l', display: 'L', sec: 'ñ' },
-      { id: 'k_mdot', char: 'm', display: 'M', sec: '.' },
+      { id: 'k_as', char: 'a', display: 'a', sec: 's' },
+      { id: 'k_df', char: 'd', display: 'd', sec: 'f' },
+      { id: 'k_gh', char: 'g', display: 'g', sec: 'h' },
+      { id: 'k_jk', char: 'j', display: 'j', sec: 'k' },
+      { id: 'k_lnene', char: 'l', display: 'l', sec: 'ñ' },
+      { id: 'k_mdot', char: 'm', display: 'm', sec: '.' },
     ]
   },
   'qwerty-column': {
     name: 'QWERTY 2 (Columnas)',
     upper: [
-      { id: 'k_qw', char: 'q', display: 'Q', sec: 'w' },
-      { id: 'k_edot', char: 'e', display: 'E', sec: '.' },
-      { id: 'k_yh', char: 'y', display: 'Y', sec: 'h' },
-      { id: 'k_uj', char: 'u', display: 'U', sec: 'j' },
-      { id: 'k_ik', char: 'i', display: 'I', sec: 'k' },
-      { id: 'k_op', char: 'o', display: 'O', sec: 'p' },
-      { id: 'k_nb', char: 'n', display: 'N', sec: 'b' },
-      { id: 'k_mv', char: 'm', display: 'M', sec: 'v' },
+      { id: 'k_qw', char: 'q', display: 'q', sec: 'w' },
+      { id: 'k_edot', char: 'e', display: 'e', sec: '.' },
+      { id: 'k_yh', char: 'y', display: 'y', sec: 'h' },
+      { id: 'k_uj', char: 'u', display: 'u', sec: 'j' },
+      { id: 'k_ik', char: 'i', display: 'i', sec: 'k' },
+      { id: 'k_op', char: 'o', display: 'o', sec: 'p' },
+      { id: 'k_nb', char: 'n', display: 'n', sec: 'b' },
+      { id: 'k_mv', char: 'm', display: 'm', sec: 'v' },
     ],
     golden: [
-      { id: 'k_az', char: 'a', display: 'A', sec: 'z' },
-      { id: 'k_sx', char: 's', display: 'S', sec: 'x' },
-      { id: 'k_dc', char: 'd', display: 'D', sec: 'c' },
-      { id: 'k_rf', char: 'r', display: 'R', sec: 'f' },
-      { id: 'k_tg', char: 't', display: 'T', sec: 'g' },
-      { id: 'k_lnene', char: 'l', display: 'L', sec: 'ñ' },
+      { id: 'k_az', char: 'a', display: 'a', sec: 'z' },
+      { id: 'k_sx', char: 's', display: 's', sec: 'x' },
+      { id: 'k_dc', char: 'd', display: 'd', sec: 'c' },
+      { id: 'k_rf', char: 'r', display: 'r', sec: 'f' },
+      { id: 'k_tg', char: 't', display: 't', sec: 'g' },
+      { id: 'k_lnene', char: 'l', display: 'l', sec: 'ñ' },
     ]
   }
 };
@@ -205,7 +206,7 @@ export function createRadialSingleThumbLayout(
   const pivotY = params.pivotY ?? DEFAULT_RADIAL_TUNING.pivotY;
   const arcScale = (params.arcScale ?? DEFAULT_RADIAL_TUNING.arcScale) / 100;
   const keyScale = (params.keyScale ?? DEFAULT_RADIAL_TUNING.keyScale) / 100;
-  const activeMapping = mapping ?? params.mapping ?? 'phonotactic';
+  const activeMapping = mapping ?? params.mapping ?? 'qwerty-column';
   const activeLayer = layer ?? params.layer ?? 'abc';
   const config = MAPPING_CONFIGS[activeMapping] ?? MAPPING_CONFIGS.phonotactic;
 
@@ -395,7 +396,7 @@ export function createRadialSingleThumbLayout(
   const spaceKeyRight: KeyDefinition = {
     id: 'k_space',
     char: ' ',
-    display: 'ESPACIO ⟷',
+    display: '⟷',
     type: 'space',
     x: Math.round(pivotX + rMidSpace * Math.cos((-125 * Math.PI) / 180)),
     y: Math.round(pivotY + rMidSpace * Math.sin((-125 * Math.PI) / 180)),
@@ -445,7 +446,7 @@ export function createRadialSingleThumbLayout(
     {
       id: 'k_space_left',
       char: ' ',
-      display: 'ESPACIO ⟷',
+      display: '⟷',
       type: 'space',
       x: 360 - spaceKeyRight.x,
       y: spaceKeyRight.y,
@@ -470,5 +471,5 @@ export function createRadialSingleThumbLayout(
   };
 }
 
-export const radialSingleThumbLayout: LayoutDefinition = createRadialSingleThumbLayout(DEFAULT_RADIAL_TUNING, false, 'phonotactic', 'abc');
-export const radialSingleThumbLeftLayout: LayoutDefinition = createRadialSingleThumbLayout(DEFAULT_RADIAL_TUNING, true, 'phonotactic', 'abc');
+export const radialSingleThumbLayout: LayoutDefinition = createRadialSingleThumbLayout(DEFAULT_RADIAL_TUNING, false, 'qwerty-column', 'abc');
+export const radialSingleThumbLeftLayout: LayoutDefinition = createRadialSingleThumbLayout(DEFAULT_RADIAL_TUNING, true, 'qwerty-column', 'abc');

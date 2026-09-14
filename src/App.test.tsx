@@ -73,24 +73,25 @@ describe('App Root Workbench & Keyboard Interactions', () => {
     render(<App />);
     const svg = screen.getByTestId('virtual-keyboard-canvas') as unknown as SVGSVGElement;
 
-    const keyEJ = radialSingleThumbLayout.keys.find(k => k.id === 'k_ej')!;
-    const keyAK = radialSingleThumbLayout.keys.find(k => k.id === 'k_ak')!;
+    // Default layout is QWERTY 2: k_az (a·z) and k_sx (s·x)
+    const keyAZ = radialSingleThumbLayout.keys.find(k => k.id === 'k_az')!;
+    const keySX = radialSingleThumbLayout.keys.find(k => k.id === 'k_sx')!;
 
-    // Tap on E·J produces 'e'
-    tapKey(svg, keyEJ);
-    expect(screen.getByText('e')).toBeDefined();
+    // Tap on a·z produces 'a' (present in canvas key and now in input display)
+    tapKey(svg, keyAZ);
+    expect(screen.getAllByText('a').length).toBeGreaterThanOrEqual(2);
 
-    // Flick on E·J produces 'j'
-    flickKey(svg, keyEJ);
-    expect(screen.getByText('ej')).toBeDefined();
+    // Flick on a·z produces 'z'
+    flickKey(svg, keyAZ);
+    expect(screen.getByText(/az/)).toBeDefined();
 
-    // Tap on A·K produces 'a'
-    tapKey(svg, keyAK);
-    expect(screen.getByText('eja')).toBeDefined();
+    // Tap on s·x produces 's'
+    tapKey(svg, keySX);
+    expect(screen.getByText(/azs/)).toBeDefined();
 
-    // Flick on A·K produces 'k'
-    flickKey(svg, keyAK);
-    expect(screen.getByText('ejak')).toBeDefined();
+    // Flick on s·x produces 'x'
+    flickKey(svg, keySX);
+    expect(screen.getByText(/azsx/)).toBeDefined();
   });
 
   it('inserts Tab character with Flick gesture on Shift key', () => {
@@ -156,23 +157,23 @@ describe('App Root Workbench & Keyboard Interactions', () => {
     fireEvent.click(screen.getByText('QWERTY 1'));
     // QWERTY 1 should display 'Horizontal' and update active description
     expect(screen.getByText(/Pares contiguos por filas/i)).toBeDefined();
-    // Canvas should now show Q and W
-    expect(screen.getByText('Q')).toBeDefined();
-    expect(screen.getByText('W')).toBeDefined();
+    // Canvas displays letters in lowercase by default
+    expect(screen.getByText('q')).toBeDefined();
+    expect(screen.getByText('w')).toBeDefined();
 
     // Switch to QWERTY 2 (Columnas)
     fireEvent.click(screen.getByText('QWERTY 2'));
     // QWERTY 2 should display 'Columnas' and update active description
     expect(screen.getByText(/Cada letra principal emparejada con su vecina de columna/i)).toBeDefined();
-    // In QWERTY 2, A is paired with Z
-    expect(screen.getByText('Z')).toBeDefined();
+    // In QWERTY 2, a is paired with z (in lowercase)
+    expect(screen.getByText('z')).toBeDefined();
 
     // Switch back to Original
     fireEvent.click(screen.getByText('Original'));
     expect(screen.getByText(/Letras reinas/i)).toBeDefined();
-    // In Original, I is paired with Y
-    expect(screen.getByText('I')).toBeDefined();
-    expect(screen.getByText('Y')).toBeDefined();
+    // In Original, i is paired with y (in lowercase)
+    expect(screen.getByText('i')).toBeDefined();
+    expect(screen.getByText('y')).toBeDefined();
   });
 
   it('allows switching to SYM layer and displays technical symbols', () => {
@@ -191,5 +192,40 @@ describe('App Root Workbench & Keyboard Interactions', () => {
     // Switch back to ABC
     fireEvent.click(screen.getByText('ABC (Letras)'));
     expect(screen.getByText('123')).toBeDefined();
+  });
+
+  it('renders keys in lowercase by default and dynamically switches to uppercase when Shift is active', () => {
+    render(<App />);
+    const svg = screen.getByTestId('virtual-keyboard-canvas') as unknown as SVGSVGElement;
+
+    // Keys are in lowercase by default
+    expect(screen.getByText('a')).toBeDefined();
+    expect(screen.getByText('z')).toBeDefined();
+
+    // Tap Shift key
+    const keyShift = radialSingleThumbLayout.keys.find(k => k.id === 'k_shift')!;
+    tapKey(svg, keyShift);
+
+    // Now keys switch to uppercase
+    expect(screen.getByText('A')).toBeDefined();
+    expect(screen.getByText('Z')).toBeDefined();
+
+    // Tap letter A in uppercase
+    const keyAZ = radialSingleThumbLayout.keys.find(k => k.id === 'k_az')!;
+    tapKey(svg, keyAZ);
+
+    // After single Shift tap, one uppercase letter is inserted and Shift reverts to none
+    expect(screen.getByText('A')).toBeDefined();
+    // Keys return to lowercase
+    expect(screen.getByText('a')).toBeDefined();
+    expect(screen.getByText('z')).toBeDefined();
+  });
+
+  it('ensures spacebar does not display the word ESPACIO and shows navigation glyph instead', () => {
+    render(<App />);
+    expect(screen.queryByText('ESPACIO')).toBeNull();
+    expect(screen.queryByText('ESPACIO ⟷')).toBeNull();
+    // Shows the ⟷ navigation indicator
+    expect(screen.getByText('⟷')).toBeDefined();
   });
 });

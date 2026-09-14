@@ -48,6 +48,57 @@ describe('Ergonomic Keyboard Layouts', () => {
     });
   });
 
+  it('ensures bimanualSplitLayout is standard QWERTY with ergonomic central correction and perfect specular symmetry', () => {
+    const leftKeys = bimanualSplitLayout.keys.filter(k => k.handAssigned === 'left');
+    const rightKeys = bimanualSplitLayout.keys.filter(k => k.handAssigned === 'right');
+
+    // Both wings must have exactly the same number of keys (19 on left, 19 on right)
+    expect(leftKeys.length).toBe(rightKeys.length);
+
+    // Verify standard QWERTY keys in left hand
+    const leftLetters = leftKeys.filter(k => k.type === 'letter').map(k => k.char);
+    expect(leftLetters).toEqual(expect.arrayContaining(['q', 'w', 'e', 'r', 't', 'a', 's', 'd', 'f', 'g', 'z', 'x', 'c', 'v', 'b']));
+
+    // Verify standard QWERTY keys in right hand
+    const rightLetters = rightKeys.filter(k => k.type === 'letter').map(k => k.char);
+    expect(rightLetters).toEqual(expect.arrayContaining(['y', 'u', 'i', 'o', 'p', 'h', 'j', 'k', 'l', 'ñ', 'n', 'm']));
+
+    // Verify ergonomic central separation between central buttons (T-Y, G-H, B-N)
+    const keyT = leftKeys.find(k => k.char === 't')!;
+    const keyY = rightKeys.find(k => k.char === 'y')!;
+    expect(keyY.x - keyT.x).toBeGreaterThanOrEqual(48); // Natural thumb reach clearance
+
+    const keyG = leftKeys.find(k => k.char === 'g')!;
+    const keyH = rightKeys.find(k => k.char === 'h')!;
+    expect(keyH.x - keyG.x).toBeGreaterThanOrEqual(48);
+
+    const keyB = leftKeys.find(k => k.char === 'b')!;
+    const keyN = rightKeys.find(k => k.char === 'n')!;
+    expect(keyN.x - keyB.x).toBeGreaterThanOrEqual(48);
+
+    // Verify Thumb Clusters in both hands
+    const leftSpace = leftKeys.find(k => k.type === 'space')!;
+    const rightSpace = rightKeys.find(k => k.type === 'space')!;
+    expect(leftSpace).toBeDefined();
+    expect(rightSpace).toBeDefined();
+    expect(leftSpace.display).toBe('⟷');
+    expect(rightSpace.display).toBe('⟷');
+    expect(leftSpace.display).not.toContain('ESPACIO');
+    expect(rightSpace.display).not.toContain('ESPACIO');
+
+    // Left thumb has Shift and Tilde; Right thumb has Backspace and Enter
+    expect(leftKeys.some(k => k.char === 'shift')).toBe(true);
+    expect(leftKeys.some(k => k.char === '´')).toBe(true);
+    expect(rightKeys.some(k => k.char === '\b')).toBe(true);
+    expect(rightKeys.some(k => k.char === '\n')).toBe(true);
+
+    // Verify geometric specular symmetry: for every key on the left, a mirrored key exists on the right
+    leftKeys.forEach(lKey => {
+      const mirroredRight = rightKeys.find(rKey => rKey.y === lKey.y && rKey.x === 360 - lKey.x);
+      expect(mirroredRight, `Key ${lKey.id} at (${lKey.x}, ${lKey.y}) has no specular match at (${360 - lKey.x}, ${lKey.y})`).toBeDefined();
+    });
+  });
+
   it('ensures hybridLayout contains all letters and coordinates within canvas', () => {
     const chars = new Set(hybridLayout.keys.map(k => k.char.toLowerCase()));
     spanishAlphabet.forEach(letter => {

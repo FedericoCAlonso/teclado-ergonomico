@@ -65,6 +65,22 @@ Combina la memoria muscular de una calculadora / pad numérico 3x3 con el barrid
 - Operadores y comodines de programación: `@ # $ % & / \ | ~ ^ _`.
 - Puntuación doble y comillas: `¿ ?`, `¡ !`, `" '`, `: ;`, ``` ` ```.
 
+### 2.5 Distribución Bimanual Ergonómica QWERTY (Dos Pulgares)
+- **Geometría Dividida y Corrección Central:**
+  - Distribución alfabética estándar QWERTY dividida en dos alas perfectamente especulares (19 teclas por ala).
+  - Corrección ergonómica en las columnas centrales (`T-G-B` en mano izquierda y `Y-H-N` en mano derecha): inclinación angular de confort y separación de 52 px para evitar la sobre-extensión o choque de los pulgares en el centro.
+- **Clústeres Simétricos de Pulgares:**
+  - Pulgar izquierdo: Cinta de espacio (`⟷`), `Shift` (`⇧`), `Tilde` (`´`), Capa `123`.
+  - Pulgar derecho: Cinta de espacio (`⟷`), `Backspace` (`⌫`), `Enter` (`↵`), `Supr`.
+  - Ambas barras de espacio admiten deslizamiento continuo para scrub milimétrico del cursor.
+
+### 2.6 Mejoras de Legibilidad y Estado Dinámico de Letras
+- **Letras en minúscula por defecto:** Reflejan fielmente el carácter que se insertará.
+- **Conmutación reactiva con Shift:** Al activar Shift, tanto la letra primaria como la secundaria se transforman instantáneamente a mayúscula (`a·z` -> `A·Z`).
+- **Barra de espacio minimalista:** Eliminación del texto "ESPACIO", reemplazado por el glifo de navegación `⟷`.
+- **Alto contraste visual:** Teclas con fondo Slate-800 (`#1e293b`), bordes Slate-600 (`#475569`), letra primaria en blanco brillante (`#f8fafc`) y caracteres secundarios en ámbar de alta visibilidad (`#fbbf24`).
+- **Simetría especular completa para zurdos:** En modo monomanual izquierdo, los pivotes, arcos, teclas y la ubicación relativa de las letras dentro de cada botón se reflejan de forma idéntica respecto al eje vertical.
+
 ---
 
 ## 3. Especificaciones para el Proyecto Android Nativo (IME)
@@ -153,5 +169,5 @@ Para convertir este diseño en un teclado universal que reemplace a Gboard o Swi
 
 ## 4. Estado del Repositorio Web
 - **Branch:** `main` (sincronizada en commit `9160875`).
-- **Tests Unitarios:** 41 tests pasando en Vitest (100% cobertura de motores ergonómicos y capas).
+- **Tests Unitarios:** 44 tests pasando en Vitest (100% cobertura de motores ergonómicos y capas).
 - **Despliegue Activo en GitHub Pages:** [https://federicocalonso.github.io/teclado-ergonomico/](https://federicocalonso.github.io/teclado-ergonomico/)

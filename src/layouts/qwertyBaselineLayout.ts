@@ -68,7 +68,7 @@ const row3: KeyDefinition[] = row3Chars.map((c, idx) =>
 // Fila 4: Acciones (Espacio, Borrado, Enter)
 const row4: KeyDefinition[] = [
   createQwertyKey('qw_bksp', '\b', '⌫', 40, 270, { type: 'action', radius: 22 }),
-  createQwertyKey('qw_space', ' ', 'ESPACIO', 180, 270, { type: 'space', radius: 45 }),
+  createQwertyKey('qw_space', ' ', '⟷', 180, 270, { type: 'space', radius: 45 }),
   createQwertyKey('qw_enter', '\n', '↵', 320, 270, { type: 'action', radius: 22 })
 ];
 

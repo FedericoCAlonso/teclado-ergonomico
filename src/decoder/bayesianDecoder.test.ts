@@ -61,7 +61,7 @@ describe('Bayesian Touch Decoder', () => {
 
     const result = decodeTouchStroke(stroke, bimanualSplitLayout, '');
     expect(result.primaryKey.char).toBe('e');
-    expect(result.char).toBe('6'); // Secondary char of E in bimanualSplitLayout
+    expect(result.char).toBe('3'); // Secondary char of E in bimanualSplitLayout
   });
 
   it('uses linguistic context to resolve ambiguous touch between two neighboring keys', () => {
